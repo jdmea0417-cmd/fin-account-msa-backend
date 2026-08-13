@@ -29,6 +29,7 @@
         <module>gateway</module>
         <module>account-service</module>
         <module>notification-service</module>
+        <module>transaction-service</module>
     </modules>
 
     <dependencies>
