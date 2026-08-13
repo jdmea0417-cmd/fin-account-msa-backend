@@ -13,55 +13,55 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class AccountController {
-    private final AccountService accountService;
+    private final AccountService service;
 
-    public AccountController(AccountService accountService) {
-        this.accountService = accountService;
+    public AccountController(AccountService service) {
+        this.service = service;
     }
 
     @PostMapping("/accounts")
-    public ResponseEntity<AccountResponseDTO> createAccount(AccountRequestDTO accountRequestDTO) {
-        AccountResponseDTO accountResponseDTO = accountService.createAccount(accountRequestDTO);
+    public ResponseEntity<AccountResponseDTO> createAccount(AccountRequestDTO request) {
+        AccountResponseDTO response = service.createAccount(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(accountResponseDTO);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/accounts/{accountId}")
     public ResponseEntity<AccountResponseDTO> getAccount(@PathVariable Long accountId) {
-        AccountResponseDTO accountResponseDTO = accountService.getAccount(accountId);
+        AccountResponseDTO response = service.getAccount(accountId);
 
-        return ResponseEntity.status(HttpStatus.OK).body(accountResponseDTO);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/accounts/{accountId}/balance")
     public ResponseEntity<BalanceResponseDTO> getBalance(@PathVariable Long accountId) {
-        BalanceResponseDTO balanceResponseDTO = accountService.getAccountBalance(accountId);
+        BalanceResponseDTO response = service.getBalance(accountId);
 
-        return ResponseEntity.status(HttpStatus.OK).body(balanceResponseDTO);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/internal/accounts/{id}/balance")
     public ResponseEntity<BalanceResponseDTO> getBalanceInternal(@PathVariable Long accountId) {
-        BalanceResponseDTO balanceResponseDTO = accountService.getAccountBalance(accountId);
+        BalanceResponseDTO response = service.getBalance(accountId);
 
-        return ResponseEntity.status(HttpStatus.OK).body(balanceResponseDTO);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     // TODO
     // BalanceResponseDTO or AccountResponseDTO
     @PostMapping("/internal/accounts/{id}/deposit")
     public ResponseEntity<BalanceResponseDTO> depositInternal(@PathVariable Long accountId) {
-        BalanceResponseDTO balanceResponseDTO = accountService.getAccountBalance(accountId);
+        BalanceResponseDTO response = service.getBalance(accountId);
 
-        return ResponseEntity.status(HttpStatus.OK).body(balanceResponseDTO);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     // TODO
     // BalanceResponseDTO or AccountResponseDTO
     @PostMapping("/internal/accounts/{id}/withdraw")
     public ResponseEntity<BalanceResponseDTO> withdrawInternal(@PathVariable Long accountId) {
-        BalanceResponseDTO balanceResponseDTO = accountService.getAccountBalance(accountId);
+        BalanceResponseDTO response = service.getBalance(accountId);
 
-        return ResponseEntity.status(HttpStatus.OK).body(balanceResponseDTO);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }
