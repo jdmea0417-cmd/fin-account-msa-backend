@@ -34,7 +34,28 @@ public class AccountController {
     }
 
     @GetMapping("/accounts/{accountId}/balance")
-    public ResponseEntity<BalanceResponseDTO> getAccountBalance(@PathVariable Long accountId) {
+    public ResponseEntity<BalanceResponseDTO> getBalance(@PathVariable Long accountId) {
+        BalanceResponseDTO balanceResponseDTO = accountService.getAccountBalance(accountId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(balanceResponseDTO);
+    }
+
+    @GetMapping("/internal/accounts/{id}/balance")
+    public ResponseEntity<BalanceResponseDTO> getBalanceInternal(@PathVariable Long accountId) {
+        BalanceResponseDTO balanceResponseDTO = accountService.getAccountBalance(accountId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(balanceResponseDTO);
+    }
+
+    @PostMapping("/internal/accounts/{id}/deposit")
+    public ResponseEntity<BalanceResponseDTO> depositInternal(@PathVariable Long accountId) {
+        BalanceResponseDTO balanceResponseDTO = accountService.getAccountBalance(accountId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(balanceResponseDTO);
+    }
+
+    @PostMapping("/internal/accounts/{id}/withdraw")
+    public ResponseEntity<BalanceResponseDTO> withdrawInternal(@PathVariable Long accountId) {
         BalanceResponseDTO balanceResponseDTO = accountService.getAccountBalance(accountId);
 
         return ResponseEntity.status(HttpStatus.OK).body(balanceResponseDTO);
