@@ -12,10 +12,10 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AccountService {
-    private final AccountRepository accountRepository;
+    private final AccountRepository repository;
 
-    public AccountService(AccountRepository accountRepository) {
-        this.accountRepository = accountRepository;
+    public AccountService(AccountRepository repository) {
+        this.repository = repository;
     }
 
     public AccountResponseDTO createAccount(AccountRequestDTO request) {
@@ -29,18 +29,18 @@ public class AccountService {
     }
 
     public AccountResponseDTO getAccount(Long accountId) {
-        AccountEntity accountEntity = accountRepository.getAccountByAccountId(accountId);
+        AccountEntity entity = repository.getAccountByAccountId(accountId);
 
-        AccountResponseDTO accountResponseDTO = new ModelMapper().map(accountEntity, AccountResponseDTO.class);
+        AccountResponseDTO response = new ModelMapper().map(entity, AccountResponseDTO.class);
 
-        return accountResponseDTO;
+        return response;
     }
 
     public BalanceResponseDTO getBalance(Long accountId) {
-         BalanceEntity balanceEntity = accountRepository.getBalanceByAccountId(accountId);
+         BalanceEntity entity = repository.getBalanceByAccountId(accountId);
 
-         BalanceResponseDTO balanceResponseDTO = new ModelMapper().map(balanceEntity, BalanceResponseDTO.class);
+         BalanceResponseDTO response = new ModelMapper().map(entity, BalanceResponseDTO.class);
 
-         return balanceResponseDTO;
+         return response;
     }
 }
