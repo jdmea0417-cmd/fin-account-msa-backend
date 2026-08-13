@@ -1,6 +1,7 @@
 package com.finaccount.accountservice.service;
 
 import com.finaccount.accountservice.dto.AccountRequestDTO;
+import com.finaccount.accountservice.dto.AccountStatus;
 import com.finaccount.accountservice.dto.BalanceResponseDTO;
 import com.finaccount.accountservice.dto.AccountResponseDTO;
 import com.finaccount.accountservice.jpa.AccountEntity;
@@ -17,6 +18,16 @@ public class AccountService {
         this.accountRepository = accountRepository;
     }
 
+    public AccountResponseDTO createAccount(AccountRequestDTO request) {
+        AccountResponseDTO.AccountResponseDTOBuilder builder = AccountResponseDTO.builder();
+
+        builder.ownerName(request.getOwnerName());
+        builder.balance(0L);
+        builder.status(AccountStatus.ACTIVE);
+
+        return builder.build();
+    }
+
     public AccountResponseDTO getAccount(Long accountId) {
         AccountEntity accountEntity = accountRepository.getAccountByAccountId(accountId);
 
@@ -25,17 +36,11 @@ public class AccountService {
         return accountResponseDTO;
     }
 
-    public BalanceResponseDTO getAccountBalance(Long accountId) {
+    public BalanceResponseDTO getBalance(Long accountId) {
          BalanceEntity balanceEntity = accountRepository.getBalanceByAccountId(accountId);
 
          BalanceResponseDTO balanceResponseDTO = new ModelMapper().map(balanceEntity, BalanceResponseDTO.class);
 
          return balanceResponseDTO;
-    }
-
-    public AccountResponseDTO createAccount(AccountRequestDTO accountRequestDTO) {
-        AccountResponseDTO.AccountResponseDTOBuilder builder = AccountResponseDTO.builder();
-
-        return builder.build();
     }
 }
