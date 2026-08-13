@@ -47,6 +47,8 @@ public class AccountController {
         return ResponseEntity.status(HttpStatus.OK).body(balanceResponseDTO);
     }
 
+    // TODO
+    // BalanceResponseDTO or AccountResponseDTO
     @PostMapping("/internal/accounts/{id}/deposit")
     public ResponseEntity<BalanceResponseDTO> depositInternal(@PathVariable Long accountId) {
         BalanceResponseDTO balanceResponseDTO = accountService.getAccountBalance(accountId);
@@ -54,6 +56,8 @@ public class AccountController {
         return ResponseEntity.status(HttpStatus.OK).body(balanceResponseDTO);
     }
 
+    // TODO
+    // BalanceResponseDTO or AccountResponseDTO
     @PostMapping("/internal/accounts/{id}/withdraw")
     public ResponseEntity<BalanceResponseDTO> withdrawInternal(@PathVariable Long accountId) {
         BalanceResponseDTO balanceResponseDTO = accountService.getAccountBalance(accountId);
