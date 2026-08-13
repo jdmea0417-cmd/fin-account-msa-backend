@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "TransactionEvent",
+  "namespace": "com.finaccounthub.avro",
+  "doc": "계좌 입출금/이체 거래 발생 시 발행되는 이벤트. BACKWARD 호환성 유지를 위해 신규 필드는 반드시 default 값을 가져야 함.",
+  "fields": [
+    { "name": "transactionId", "type": "string", "doc": "거래 고유 ID (UUID)" },
+    { "name": "accountId", "type": "string", "doc": "거래 대상 계좌 ID" },
+    { "name": "userId", "type": "string", "doc": "거래 요청 사용자 ID" },
+    { "name": "transactionType", "type": "string", "doc": "DEPOSIT | WITHDRAWAL | TRANSFER" },
+    { "name": "amount", "type": "long", "doc": "거래 금액 (원 단위)" },
+    { "name": "occurredAt", "type": "string", "doc": "거래 발생 시각 (ISO-8601)" }
+  ]
+}
