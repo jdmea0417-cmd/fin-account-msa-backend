@@ -1,0 +1,18 @@
+﻿{
+  "type": "record",
+  "name": "TransactionEvent",
+  "namespace": "com.finaccounthub.avro",
+  "doc": "怨꾩쥖 ?낆텧湲??댁껜 嫄곕옒 諛쒖깮 ??諛쒗뻾?섎뒗 ?대깽?? BACKWARD ?명솚???좎?瑜??꾪빐 ?좉퇋 ?꾨뱶??諛섎뱶??default 媛믪쓣 媛?몄빞 ?? v2: ?붽뎄?ы빆 ?뺣━ 臾몄꽌(fromAccount/toAccount FK 遺꾨━, status) 諛섏쁺 ??fromAccountId/toAccountId/status 異붽?.",
+  "fields": [
+    { "name": "transactionId", "type": "string", "doc": "嫄곕옒 怨좎쑀 ID (UUID)" },
+    { "name": "accountId", "type": "string", "doc": "嫄곕옒 ???怨꾩쥖 ID (?섏쐞 ?명솚?? DEPOSIT/WITHDRAW ?????怨꾩쥖, TRANSFER ??fromAccountId? ?숈씪)" },
+    { "name": "userId", "type": "string", "doc": "嫄곕옒 ?붿껌 ?ъ슜??ID" },
+    { "name": "transactionType", "type": "string", "doc": "DEPOSIT | WITHDRAW | TRANSFER (?붽뎄?ы빆 ?뺣━ 臾몄꽌 湲곗?)" },
+    { "name": "amount", "type": "long", "doc": "嫄곕옒 湲덉븸 (???⑥쐞)" },
+    { "name": "occurredAt", "type": "string", "doc": "嫄곕옒 諛쒖깮 ?쒓컖 (ISO-8601)" },
+    { "name": "fromAccountId", "type": ["null", "string"], "default": null, "doc": "異쒓툑/?댁껜 異쒕컻 怨꾩쥖 ID (DEPOSIT? null). ?붽뎄?ы빆 ?뺣━(2) API ?묐떟??fromAccountId ??? },
+    { "name": "toAccountId", "type": ["null", "string"], "default": null, "doc": "?낃툑/?댁껜 ?꾩갑 怨꾩쥖 ID (WITHDRAW??null). ?붽뎄?ы빆 ?뺣━(2) API ?묐떟??toAccountId ??? },
+    { "name": "status", "type": "string", "default": "SUCCESS", "doc": "PENDING | SUCCESS | FAILED (Saga 蹂댁긽 ?몃옖??뀡 ??? ?붽뎄?ы빆 ?뺣━ 臾몄꽌 Transaction DB status)" }
+  ]
+}
+
