@@ -1,7 +1,9 @@
 version: '3.8'
 
-# Fin-Account Hub — 전체 스택 로컬 통합 실행
-# 기동 순서: kafka -> schema-registry -> discovery -> config -> gateway/account/transaction/notification
+# Fin-Account Hub — 담당 파트 전용 스택 (Notification Service / Kafka / Schema Registry)
+# 이 리포지토리는 팀 프로젝트 중 아래 3개 담당 영역만 포함합니다.
+# 나머지 서비스(discovery/config/gateway/account/transaction)는 팀원 리포지토리 참고.
+# 기동 순서: kafka -> schema-registry -> notification-service
 
 services:
   # ---------------------------------------------------------------
@@ -74,86 +76,14 @@ services:
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
 
   # ---------------------------------------------------------------
-  # MSA Outer Architecture
+  # 담당 서비스: notification-service
+  # (discovery/config-service는 이 리포지토리에 없으므로 depends_on/EUREKA_URI 미설정.
+  #  spring.config.import는 optional이라 config-service 미기동 시에도 정상 구동됨)
   # ---------------------------------------------------------------
-  discovery-service:
-    build: ./discovery-service
-    container_name: fin-discovery
-    ports:
-      - "8761:8761"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  config-service:
-    build: ./config-service
-    container_name: fin-config
-    depends_on:
-      discovery-service:
-        condition: service_healthy
-    ports:
-      - "8888:8888"
-    environment:
-      EUREKA_URI: http://discovery-service:8761/eureka
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  apigateway-service:
-    build: ./apigateway-service
-    container_name: fin-gateway
-    depends_on:
-      config-service:
-        condition: service_healthy
-    ports:
-      - "8000:8000"
-    environment:
-      EUREKA_URI: http://discovery-service:8761/eureka
-      CONFIG_SERVER_URI: http://config-service:8888
-
-  # ---------------------------------------------------------------
-  # Inner Architecture (Microservices)
-  # ---------------------------------------------------------------
-  account-service:
-    build: ./account-service
-    container_name: fin-account
-    depends_on:
-      config-service:
-        condition: service_healthy
-    ports:
-      - "8081:8081"
-    environment:
-      EUREKA_URI: http://discovery-service:8761/eureka
-      CONFIG_SERVER_URI: http://config-service:8888
-
-  transaction-service:
-    build: ./transaction-service
-    container_name: fin-transaction
-    depends_on:
-      config-service:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      schema-registry:
-        condition: service_healthy
-    ports:
-      - "8082:8082"
-    environment:
-      EUREKA_URI: http://discovery-service:8761/eureka
-      CONFIG_SERVER_URI: http://config-service:8888
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
-
   notification-service:
     build: ./notification-service
     container_name: fin-notification
     depends_on:
-      config-service:
-        condition: service_healthy
       kafka:
         condition: service_healthy
       schema-registry:
@@ -161,8 +91,6 @@ services:
     ports:
       - "8085:8085"
     environment:
-      EUREKA_URI: http://discovery-service:8761/eureka
-      CONFIG_SERVER_URI: http://config-service:8888
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
 
