@@ -3,13 +3,11 @@ package com.finaccount.transactionservice.jpa;
 import com.finaccount.transactionservice.dto.TransactionStatus;
 import com.finaccount.transactionservice.dto.TransactionType;
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 
 import java.time.Instant;
 
-@Getter
-@Builder
+@Data
 @Table
 public class TransactionEntity {
     @Id

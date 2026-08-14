@@ -1,54 +1,100 @@
 package com.finaccount.transactionservice.controller;
 
-import com.finaccount.transactionservice.dto.TransactionRequestDTO;
-import com.finaccount.transactionservice.dto.TransactionResponseDTO;
+import com.finaccount.transactionservice.dto.TransactionDto;
+import com.finaccount.transactionservice.vo.TransactionRequest;
+import com.finaccount.transactionservice.vo.TransactionResponse;
 import com.finaccount.transactionservice.service.TransactionService;
+import org.modelmapper.ModelMapper;
+import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @RestController
 public class TransactionController {
-    private final TransactionService transactionService;
+    private final TransactionService service;
 
-    public TransactionController(TransactionService transactionService) {
-        this.transactionService = transactionService;
+    public TransactionController(TransactionService service) {
+        this.service = service;
     }
 
-    @PostMapping("/transaction/deposit")
-    public ResponseEntity<TransactionResponseDTO> deposit(TransactionRequestDTO transactionRequestDTO) {
-        TransactionResponseDTO response = transactionService.deposit(transactionRequestDTO);
+    @PostMapping("/transactions/deposit")
+    public ResponseEntity<TransactionResponse> deposit(TransactionRequest request) {
+        ModelMapper mapper = new ModelMapper();
+        mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+
+        TransactionDto dto = mapper.map(request, TransactionDto.class);
+
+        service.deposit(dto);
+
+        TransactionResponse response = mapper.map(dto, TransactionResponse.class);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/transaction/withdraw")
-    public ResponseEntity<TransactionResponseDTO> withdraw(TransactionRequestDTO transactionRequestDTO) {
-        TransactionResponseDTO response = transactionService.withdraw(transactionRequestDTO);
+    @PostMapping("/transactions/withdraw")
+    public ResponseEntity<TransactionResponse> withdraw(TransactionRequest request) {
+        ModelMapper mapper = new ModelMapper();
+        mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+
+        TransactionDto dto = mapper.map(request, TransactionDto.class);
+
+        service.withdraw(dto);
+
+        TransactionResponse response = mapper.map(dto, TransactionResponse.class);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/transaction/transfer")
-    public ResponseEntity<TransactionResponseDTO> transfer(TransactionRequestDTO transactionRequestDTO) {
-        TransactionResponseDTO response = transactionService.transfer(transactionRequestDTO);
+    @PostMapping("/transactions/transfer")
+    public ResponseEntity<TransactionResponse> transfer(TransactionRequest request) {
+        ModelMapper mapper = new ModelMapper();
+        mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+
+        TransactionDto dto = mapper.map(request, TransactionDto.class);
+
+        service.transfer(dto);
+
+        TransactionResponse response = mapper.map(dto, TransactionResponse.class);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping("/transaction/{transactionId}")
-    public ResponseEntity<TransactionResponseDTO> getTransaction(@PathVariable Long transactionId) {
-        TransactionResponseDTO response = transactionService.getTransaction(transactionId);
+    @GetMapping("/transactions/{transactionId}")
+    public ResponseEntity<TransactionResponse> getTransaction(@PathVariable Integer transactionId) {
+        try {
+            TransactionDto dto = service.getTransaction(transactionId);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+            ModelMapper mapper = new ModelMapper();
+            mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+
+            TransactionResponse response = mapper.map(dto, TransactionResponse.class);
+
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 
-    @GetMapping("/transaction")
-    public ResponseEntity<List<TransactionResponseDTO>> getTransactions(@RequestParam Long accountId) {
-        List<TransactionResponseDTO> responses = transactionService.getTransactions(accountId);
+    @GetMapping("/transactions")
+    public ResponseEntity<List<TransactionResponse>> getTransactions(@RequestParam Integer accountId) {
+        try {
+            List<TransactionDto> dtos = service.getTransactions(accountId);
 
-        return ResponseEntity.status(HttpStatus.OK).body(responses);
+            ModelMapper mapper = new ModelMapper();
+            mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+
+            List<TransactionResponse> responses = dtos.stream()
+                    .map(dto -> mapper.map(dto, TransactionResponse.class)).toList();
+
+            return ResponseEntity.status(HttpStatus.OK).body(responses);
+
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(List.of());
+        }
     }
 }
