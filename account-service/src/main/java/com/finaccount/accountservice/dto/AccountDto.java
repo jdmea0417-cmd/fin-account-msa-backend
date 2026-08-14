@@ -5,10 +5,12 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class AccountResponseDTO {
-    private Long accountNumber;
+public class AccountDto {
+    private Integer accountNumber;
 
-    private Integer ownerName;
+    private String ownerName;
+
+    private String password;
 
     private Long balance;
 
