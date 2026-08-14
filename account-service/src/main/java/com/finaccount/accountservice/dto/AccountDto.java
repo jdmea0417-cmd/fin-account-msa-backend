@@ -1,12 +1,10 @@
 package com.finaccount.accountservice.dto;
 
-import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 
-@Getter
-@Builder
+@Data
 public class AccountDto {
-    private Integer accountNumber;
+    private String accountNumber;
 
     private String ownerName;
 

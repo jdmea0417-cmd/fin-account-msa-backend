@@ -5,6 +5,7 @@ import com.finaccount.accountservice.dto.AccountDto;
 import com.finaccount.accountservice.jpa.AccountEntity;
 import com.finaccount.accountservice.jpa.AccountRepository;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,15 +23,19 @@ public class AccountService {
 
     public AccountDto createAccount(AccountDto dto) {
         ModelMapper mapper = new ModelMapper();
+        mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
         AccountEntity entity = mapper.map(dto, AccountEntity.class);
+        entity.setAccountNumber(new AccountNumberGenerator().generate());
         entity.setBalance(0L);
         entity.setStatus(AccountStatus.ACTIVE);
         entity.setPassword(passwordEncoder.encode(dto.getPassword()));
 
         repository.save(entity);
 
-        return dto;
+        AccountDto created = mapper.map(entity, AccountDto.class);
+
+        return created;
     }
 
     public AccountDto getAccount(Integer accountId) throws NoSuchElementException {

@@ -1,13 +1,11 @@
 package com.finaccount.accountservice.vo;
 
 import com.finaccount.accountservice.dto.AccountStatus;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 
-@Getter
-@Builder
+@Data
 public class AccountResponse {
-    private Integer accountNumber;
+    private String accountNumber;
 
     private String ownerName;
 

@@ -13,7 +13,7 @@ public class AccountEntity {
     private Integer accountId;
 
     @Column(nullable = false, unique = true, length = 20)
-    private Integer accountNumber;
+    private String accountNumber;
 
     @Column(nullable = false, length = 100)
     private String ownerName;
