@@ -1,11 +1,13 @@
-package com.finaccount.transactionservice.dto;
+package com.finaccount.transactionservice.vo;
 
+import com.finaccount.transactionservice.dto.TransactionStatus;
+import com.finaccount.transactionservice.dto.TransactionType;
 import lombok.Getter;
 
 import java.time.Instant;
 
 @Getter
-public class TransactionResponseDTO {
+public class TransactionResponse {
     private Integer transactionId;
 
     private Integer fromAccountId;
