@@ -4,6 +4,8 @@ import lombok.Data;
 
 @Data
 public class AccountDto {
+    private Integer accountId;
+
     private String accountNumber;
 
     private String ownerName;

@@ -38,11 +38,15 @@ public class AccountService {
         return created;
     }
 
-    public AccountDto getAccount(Integer accountId) throws NoSuchElementException {
+    public AccountDto getAccountByAccountId(Integer accountId) throws NoSuchElementException {
         AccountEntity entity = repository.findById(accountId).orElseThrow();
 
         AccountDto response = new ModelMapper().map(entity, AccountDto.class);
 
         return response;
+    }
+
+    public AccountDto getAccountByAccountNumber(String accountNumber) {
+        return null;
     }
 }
