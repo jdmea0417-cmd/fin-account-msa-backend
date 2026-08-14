@@ -17,7 +17,7 @@ public class NotificationEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String transactionId;
 
     @Column(nullable = false)
@@ -36,6 +36,15 @@ public class NotificationEntity {
     private String message;
 
     @Column(nullable = false)
+    private String status;
+
+    @Column
+    private String fromAccountId;
+
+    @Column
+    private String toAccountId;
+
+    @Column(nullable = false)
     private LocalDateTime receivedAt;
 
     protected NotificationEntity() {
@@ -44,6 +53,7 @@ public class NotificationEntity {
 
     public NotificationEntity(String transactionId, String accountId, String userId,
                                String transactionType, Long amount, String message,
+                               String status, String fromAccountId, String toAccountId,
                                LocalDateTime receivedAt) {
         this.transactionId = transactionId;
         this.accountId = accountId;
@@ -51,6 +61,9 @@ public class NotificationEntity {
         this.transactionType = transactionType;
         this.amount = amount;
         this.message = message;
+        this.status = status;
+        this.fromAccountId = fromAccountId;
+        this.toAccountId = toAccountId;
         this.receivedAt = receivedAt;
     }
 
@@ -80,6 +93,18 @@ public class NotificationEntity {
 
     public String getMessage() {
         return message;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public String getFromAccountId() {
+        return fromAccountId;
+    }
+
+    public String getToAccountId() {
+        return toAccountId;
     }
 
     public LocalDateTime getReceivedAt() {

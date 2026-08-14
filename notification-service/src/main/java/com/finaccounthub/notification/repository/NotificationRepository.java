@@ -10,4 +10,6 @@ public interface NotificationRepository extends JpaRepository<NotificationEntity
     List<NotificationEntity> findByUserIdOrderByReceivedAtDesc(String userId);
 
     List<NotificationEntity> findAllByOrderByReceivedAtDesc();
+
+    boolean existsByTransactionId(String transactionId);
 }

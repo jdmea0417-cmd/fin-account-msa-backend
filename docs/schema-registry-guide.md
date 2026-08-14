@@ -16,6 +16,18 @@ Confluent Schema Registry는 Kafka 토픽에 발행되는 메시지의 **Avro �
 - `transaction-service/src/main/avro/transaction_event.avsc`
 - `notification-service/src/main/avro/transaction_event.avsc` (동일 파일, Producer/Consumer 양쪽에 필요)
 
+**v2 변경사항** (요구사항 정리 문서 반영, 이번 조율 작업으로 transaction-service까지 통일 완료):
+- `transactionType` 값 통일: `WITHDRAWAL` → `WITHDRAW` (요구사항 정리 문서 기준) — Producer/Consumer 양쪽 반영 완료
+- `fromAccountId` / `toAccountId` (nullable string, default null) 추가 — 서비스별 DB 분리 구조에서 이체(TRANSFER) 시 출발/도착 계좌를 구분하기 위함 (요구사항 정리 문서의 Transaction DB `fromAccount`/`toAccount` FK 대응). transaction-service `/transactions/simulate`가 거래 타입에 따라 값을 채워 발행함
+- `status` (string, default "SUCCESS") 추가 — PENDING/SUCCESS/FAILED, Saga 보상 트랜잭션 대응
+- 위 필드들은 모두 default 값을 가지므로 BACKWARD 호환성 유지됨
+- Producer(transaction-service)/Consumer(notification-service) 스키마 파일이 동일하게 동기화됨 (이전에는 Consumer만 v2였던 불일치를 해소)
+
+**추가 신뢰성 개선** (notification-service):
+- `notification_log.transaction_id` UNIQUE 제약 + 저장 전 존재 확인으로 멱등성 보장 (Kafka 재전송/Consumer 재시작 시 중복 저장 방지)
+- `ErrorHandlingDeserializer` + `DefaultErrorHandler`(FixedBackOff 1초×3회) + `DeadLetterPublishingRecoverer`로 역직렬화/저장 실패 시 `fin.transaction.events.DLT` 토픽으로 재발행
+- `NotificationServiceIntegrationTest`: EmbeddedKafka + MockSchemaRegistryClient 기반 end-to-end 통합 테스트 (발행→등록→소비→조회 API, 멱등성, TRANSFER 메시지)
+
 `avro-maven-plugin` 이 빌드 시 `.avsc` → Java 클래스(`com.finaccounthub.avro.TransactionEvent`)를
 자동 생성한다 (`mvn generate-sources`).
 

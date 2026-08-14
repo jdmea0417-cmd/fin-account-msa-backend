@@ -1,6 +1,10 @@
-# 시스템 구성도 — Fin-Account Hub
+# 시스템 구성도 — Fin-Account Hub (담당 파트: Notification / Kafka / Schema Registry)
 
-## 전체 아키텍처 (텍스트 다이어그램)
+> 이 문서는 전체 팀 프로젝트 아키텍처를 보여주되, 이 리포지토리에는 **notification-service /
+> Kafka / Schema Registry**만 포함되어 있습니다. account-service, transaction-service,
+> discovery-service, config-service, apigateway-service는 팀원 담당(전체 스택 리포지토리 참고).
+
+## 전체 아키텍처 (텍스트 다이어그램, 참고용)
 
 ```
 ┌──────────┐        ┌───────────────────────┐        ┌──────────────────┐

@@ -38,6 +38,9 @@ COMPATIBLE_SCHEMA=$(cat <<'EOF'
     { "name": "transactionType", "type": "string" },
     { "name": "amount", "type": "long" },
     { "name": "occurredAt", "type": "string" },
+    { "name": "fromAccountId", "type": ["null", "string"], "default": null },
+    { "name": "toAccountId", "type": ["null", "string"], "default": null },
+    { "name": "status", "type": "string", "default": "SUCCESS" },
     { "name": "channel", "type": "string", "default": "MOBILE" }
   ]
 }
@@ -74,6 +77,9 @@ INCOMPATIBLE_SCHEMA=$(cat <<'EOF'
     { "name": "transactionType", "type": "string" },
     { "name": "amount", "type": "long" },
     { "name": "occurredAt", "type": "string" },
+    { "name": "fromAccountId", "type": ["null", "string"], "default": null },
+    { "name": "toAccountId", "type": ["null", "string"], "default": null },
+    { "name": "status", "type": "string", "default": "SUCCESS" },
     { "name": "channel", "type": "string" }
   ]
 }
