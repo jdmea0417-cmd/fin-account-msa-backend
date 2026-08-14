@@ -1,15 +1,19 @@
 package com.finaccount.accountservice.controller;
 
-import com.finaccount.accountservice.dto.AccountRequestDTO;
-import com.finaccount.accountservice.dto.BalanceResponseDTO;
-import com.finaccount.accountservice.dto.AccountResponseDTO;
+import com.finaccount.accountservice.vo.AccountRequest;
+import com.finaccount.accountservice.dto.AccountDto;
 import com.finaccount.accountservice.service.AccountService;
+import com.finaccount.accountservice.vo.AccountResponse;
+import org.modelmapper.ModelMapper;
+import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.NoSuchElementException;
 
 @RestController
 public class AccountController {
@@ -20,48 +24,31 @@ public class AccountController {
     }
 
     @PostMapping("/accounts")
-    public ResponseEntity<AccountResponseDTO> createAccount(AccountRequestDTO request) {
-        AccountResponseDTO response = service.createAccount(request);
+    public ResponseEntity<AccountResponse> createAccount(AccountRequest request) {
+        ModelMapper mapper = new ModelMapper();
+        mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        AccountDto dto = service.createAccount(mapper.map(request, AccountDto.class));
+
+        AccountResponse response = mapper.map(dto, AccountResponse.class);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/accounts/{accountId}")
-    public ResponseEntity<AccountResponseDTO> getAccount(@PathVariable Long accountId) {
-        AccountResponseDTO response = service.getAccount(accountId);
+    public ResponseEntity<AccountResponse> getAccount(@PathVariable Integer accountId) {
+        try {
+            ModelMapper mapper = new ModelMapper();
+            mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
+            AccountDto dto = service.getAccount(accountId);
 
-    @GetMapping("/accounts/{accountId}/balance")
-    public ResponseEntity<BalanceResponseDTO> getBalance(@PathVariable Long accountId) {
-        BalanceResponseDTO response = service.getBalance(accountId);
+            AccountResponse response = mapper.map(dto, AccountResponse.class);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
+            return ResponseEntity.status(HttpStatus.OK).body(response);
 
-    @GetMapping("/internal/accounts/{id}/balance")
-    public ResponseEntity<BalanceResponseDTO> getBalanceInternal(@PathVariable Long accountId) {
-        BalanceResponseDTO response = service.getBalance(accountId);
-
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-    // TODO
-    // BalanceResponseDTO or AccountResponseDTO
-    @PostMapping("/internal/accounts/{id}/deposit")
-    public ResponseEntity<BalanceResponseDTO> depositInternal(@PathVariable Long accountId) {
-        BalanceResponseDTO response = service.getBalance(accountId);
-
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-    // TODO
-    // BalanceResponseDTO or AccountResponseDTO
-    @PostMapping("/internal/accounts/{id}/withdraw")
-    public ResponseEntity<BalanceResponseDTO> withdrawInternal(@PathVariable Long accountId) {
-        BalanceResponseDTO response = service.getBalance(accountId);
-
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 }
