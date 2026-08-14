@@ -16,6 +16,13 @@
     <version>1.0.0</version>
     <packaging>pom</packaging>
 
+    <name>fin-account-msa-backend</name>
+    <description>Fin Account MSA Backend</description>
+
+    <properties>
+        <java.version>21</java.version>
+    </properties>
+
     <modules>
         <module>account-service</module>
         <module>notification-service</module>
@@ -24,12 +31,6 @@
         <module>eureka-server</module>
         <module>gateway</module>
     </modules>
-
-    <name>fin-account-msa</name>
-    <description></description>
-    <properties>
-        <java.version>21</java.version>
-    </properties>
 
     <dependencies>
         <dependency>
