@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.finaccount</groupId>
     <artifactId>account-service</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>account-service</name>
     <description>account-service</description>
     <url/>
