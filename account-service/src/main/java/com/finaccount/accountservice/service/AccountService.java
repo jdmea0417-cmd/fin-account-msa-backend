@@ -1,46 +1,43 @@
 package com.finaccount.accountservice.service;
 
-import com.finaccount.accountservice.dto.AccountRequestDTO;
 import com.finaccount.accountservice.dto.AccountStatus;
-import com.finaccount.accountservice.dto.BalanceResponseDTO;
-import com.finaccount.accountservice.dto.AccountResponseDTO;
+import com.finaccount.accountservice.dto.AccountDto;
 import com.finaccount.accountservice.jpa.AccountEntity;
 import com.finaccount.accountservice.jpa.AccountRepository;
-import com.finaccount.accountservice.jpa.BalanceEntity;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.NoSuchElementException;
 
 @Service
 public class AccountService {
     private final AccountRepository repository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    public AccountService(AccountRepository repository) {
+    public AccountService(AccountRepository repository, BCryptPasswordEncoder passwordEncoder) {
         this.repository = repository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public AccountResponseDTO createAccount(AccountRequestDTO request) {
-        AccountResponseDTO.AccountResponseDTOBuilder builder = AccountResponseDTO.builder();
+    public AccountDto createAccount(AccountDto dto) {
+        ModelMapper mapper = new ModelMapper();
 
-        builder.ownerName(request.getOwnerName());
-        builder.balance(0L);
-        builder.status(AccountStatus.ACTIVE);
+        AccountEntity entity = mapper.map(dto, AccountEntity.class);
+        entity.setBalance(0L);
+        entity.setStatus(AccountStatus.ACTIVE);
+        entity.setPassword(passwordEncoder.encode(dto.getPassword()));
 
-        return builder.build();
+        repository.save(entity);
+
+        return dto;
     }
 
-    public AccountResponseDTO getAccount(Long accountId) {
-        AccountEntity entity = repository.getAccountByAccountId(accountId);
+    public AccountDto getAccount(Integer accountId) throws NoSuchElementException {
+        AccountEntity entity = repository.findById(accountId).orElseThrow();
 
-        AccountResponseDTO response = new ModelMapper().map(entity, AccountResponseDTO.class);
+        AccountDto response = new ModelMapper().map(entity, AccountDto.class);
 
         return response;
-    }
-
-    public BalanceResponseDTO getBalance(Long accountId) {
-         BalanceEntity entity = repository.getBalanceByAccountId(accountId);
-
-         BalanceResponseDTO response = new ModelMapper().map(entity, BalanceResponseDTO.class);
-
-         return response;
     }
 }
