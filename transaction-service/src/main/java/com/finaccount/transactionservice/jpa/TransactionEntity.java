@@ -9,6 +9,7 @@ import java.time.Instant;
 
 @Data
 @Table
+@Entity
 public class TransactionEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
