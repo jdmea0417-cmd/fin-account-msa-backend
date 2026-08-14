@@ -22,43 +22,43 @@ public class TransactionController {
     }
 
     @PostMapping("/transactions/deposit")
-    public ResponseEntity<TransactionResponse> deposit(TransactionRequest request) {
+    public ResponseEntity<TransactionResponse> deposit(@RequestBody TransactionRequest request) {
         ModelMapper mapper = new ModelMapper();
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
         TransactionDto dto = mapper.map(request, TransactionDto.class);
 
-        service.deposit(dto);
+        TransactionDto deposited = service.deposit(dto);
 
-        TransactionResponse response = mapper.map(dto, TransactionResponse.class);
+        TransactionResponse response = mapper.map(deposited, TransactionResponse.class);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/transactions/withdraw")
-    public ResponseEntity<TransactionResponse> withdraw(TransactionRequest request) {
+    public ResponseEntity<TransactionResponse> withdraw(@RequestBody TransactionRequest request) {
         ModelMapper mapper = new ModelMapper();
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
         TransactionDto dto = mapper.map(request, TransactionDto.class);
 
-        service.withdraw(dto);
+        TransactionDto withdrawn = service.withdraw(dto);
 
-        TransactionResponse response = mapper.map(dto, TransactionResponse.class);
+        TransactionResponse response = mapper.map(withdrawn, TransactionResponse.class);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/transactions/transfer")
-    public ResponseEntity<TransactionResponse> transfer(TransactionRequest request) {
+    public ResponseEntity<TransactionResponse> transfer(@RequestBody TransactionRequest request) {
         ModelMapper mapper = new ModelMapper();
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
         TransactionDto dto = mapper.map(request, TransactionDto.class);
 
-        service.transfer(dto);
+        TransactionDto transferred = service.transfer(dto);
 
-        TransactionResponse response = mapper.map(dto, TransactionResponse.class);
+        TransactionResponse response = mapper.map(transferred, TransactionResponse.class);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

@@ -2,11 +2,12 @@ package com.finaccount.transactionservice.vo;
 
 import com.finaccount.transactionservice.dto.TransactionStatus;
 import com.finaccount.transactionservice.dto.TransactionType;
+import lombok.Data;
 import lombok.Getter;
 
 import java.time.Instant;
 
-@Getter
+@Data
 public class TransactionResponse {
     private Integer transactionId;
 
