@@ -25,9 +25,11 @@ public class TransactionEntity {
     private Long amount;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private TransactionType type;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private TransactionStatus status;
 
     @Column(nullable = false)

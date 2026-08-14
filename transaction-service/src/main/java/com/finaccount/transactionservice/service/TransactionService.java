@@ -1,7 +1,6 @@
 package com.finaccount.transactionservice.service;
 
 import com.finaccount.transactionservice.dto.TransactionDto;
-import com.finaccount.transactionservice.vo.TransactionResponse;
 import com.finaccount.transactionservice.dto.TransactionStatus;
 import com.finaccount.transactionservice.dto.TransactionType;
 import com.finaccount.transactionservice.jpa.TransactionEntity;
@@ -21,7 +20,7 @@ public class TransactionService {
         this.repository = repository;
     }
 
-    public void deposit(TransactionDto dto) {
+    public TransactionDto deposit(TransactionDto dto) {
         ModelMapper mapper = new ModelMapper();
         TransactionEntity entity = mapper.map(dto, TransactionEntity.class);
 
@@ -30,9 +29,13 @@ public class TransactionService {
         entity.setCreatedAt(Instant.now());
 
         repository.save(entity);
+
+        TransactionDto saved =  mapper.map(entity, TransactionDto.class);
+
+        return saved;
     }
 
-    public void withdraw(TransactionDto dto) {
+    public TransactionDto withdraw(TransactionDto dto) {
         ModelMapper mapper = new ModelMapper();
         TransactionEntity entity = mapper.map(dto, TransactionEntity.class);
 
@@ -41,9 +44,13 @@ public class TransactionService {
         entity.setCreatedAt(Instant.now());
 
         repository.save(entity);
+
+        TransactionDto saved =  mapper.map(entity, TransactionDto.class);
+
+        return saved;
     }
 
-    public void transfer(TransactionDto dto) {
+    public TransactionDto transfer(TransactionDto dto) {
         ModelMapper mapper = new ModelMapper();
         TransactionEntity entity = mapper.map(dto, TransactionEntity.class);
 
@@ -52,6 +59,10 @@ public class TransactionService {
         entity.setCreatedAt(Instant.now());
 
         repository.save(entity);
+
+        TransactionDto saved =  mapper.map(entity, TransactionDto.class);
+
+        return saved;
     }
 
     public TransactionDto getTransaction(Integer transactionId) throws NoSuchElementException {
