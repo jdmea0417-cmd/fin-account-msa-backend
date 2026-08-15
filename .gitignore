@@ -17,3 +17,5 @@ Thumbs.db
 
 ### Docker volumes (local) ###
 docker-data/
+
+**/target/
