@@ -33,24 +33,24 @@ public class WebSecurity {
 
     @Bean
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
-        AuthenticationManager authenticationManager = getAuthenticationManager(http, accountService, bCryptPasswordEncoder);
+        AuthenticationManager authenticationManager = createAuthenticationManager(http, accountService, bCryptPasswordEncoder);
 
-        http.csrf(getCsrfCustomizer());
+        http.csrf(createCsrfCustomizer());
 
-        http.authorizeHttpRequests(getAuthorizeHttpRequestCustomizer());
+        http.authorizeHttpRequests(createAuthorizeHttpRequestCustomizer());
 
-        http.authenticationManager(getAuthenticationManager(authenticationManager));
+        http.authenticationManager(createAuthenticationManager(authenticationManager));
 
-        http.addFilter(getAuthenticationFilter(authenticationManager, accountService, environment));
+        http.addFilter(createAuthenticationFilter(authenticationManager, accountService, environment));
 
-        http.httpBasic(getHttpBasicCustomizer());
+        http.httpBasic(createHttpBasicCustomizer());
 
-        http.headers(getHeadersCustomizer());
+        http.headers(createHeadersCustomizer());
 
         return http.build();
     }
 
-    private AuthenticationManager getAuthenticationManager(
+    private AuthenticationManager createAuthenticationManager(
             HttpSecurity http,
             AccountService accountService,
             BCryptPasswordEncoder bCryptPasswordEncoder
@@ -62,14 +62,14 @@ public class WebSecurity {
         return authenticationManager;
     }
 
-    private Customizer<CsrfConfigurer<HttpSecurity>> getCsrfCustomizer() {
+    private Customizer<CsrfConfigurer<HttpSecurity>> createCsrfCustomizer() {
         return AbstractHttpConfigurer::disable;
     }
 
     // TODO
     private Customizer<AuthorizeHttpRequestsConfigurer<HttpSecurity>
             .AuthorizationManagerRequestMatcherRegistry>
-    getAuthorizeHttpRequestCustomizer() {
+    createAuthorizeHttpRequestCustomizer() {
         return (registry) -> {
             registry.requestMatchers("/h2-console/**").permitAll();
             registry.requestMatchers("/actuator/**").permitAll();
@@ -80,11 +80,11 @@ public class WebSecurity {
         };
     }
 
-    private AuthenticationManager getAuthenticationManager(AuthenticationManager authenticationManager) {
+    private AuthenticationManager createAuthenticationManager(AuthenticationManager authenticationManager) {
         return authenticationManager;
     }
 
-    private AuthenticationFilter getAuthenticationFilter(
+    private AuthenticationFilter createAuthenticationFilter(
             AuthenticationManager authenticationManager,
             AccountService accountService,
             Environment environment
@@ -98,11 +98,11 @@ public class WebSecurity {
         return authenticationFilter;
     }
 
-    private Customizer<HttpBasicConfigurer<HttpSecurity>> getHttpBasicCustomizer() {
+    private Customizer<HttpBasicConfigurer<HttpSecurity>> createHttpBasicCustomizer() {
         return Customizer.withDefaults();
     }
 
-    private Customizer<HeadersConfigurer<HttpSecurity>> getHeadersCustomizer() {
+    private Customizer<HeadersConfigurer<HttpSecurity>> createHeadersCustomizer() {
         return (configurer) -> {
             configurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin);
         };
