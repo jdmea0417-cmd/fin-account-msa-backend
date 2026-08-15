@@ -21,6 +21,10 @@ public class TransactionController {
         this.service = service;
     }
 
+    // TODO
+    // deposit, withdraw, transfer 엔드포인트가 따로 필요한가.
+    // TransactionRequest에서 TransactionType을 명시하는 방법이 더 낫지 않은가.
+    // deposit(), withdraw(), transfer() 메소드가 사실상 동일하다.
     @PostMapping("/transactions/deposit")
     public ResponseEntity<TransactionResponse> deposit(@RequestBody TransactionRequest request) {
         ModelMapper mapper = new ModelMapper();
