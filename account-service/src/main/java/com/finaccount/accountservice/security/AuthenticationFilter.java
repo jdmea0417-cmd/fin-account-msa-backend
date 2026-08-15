@@ -58,6 +58,7 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
         }
     }
 
+    // TODO
     @Override
     protected void successfulAuthentication(
             HttpServletRequest request,

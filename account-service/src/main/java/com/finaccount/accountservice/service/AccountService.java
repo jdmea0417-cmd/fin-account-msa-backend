@@ -6,13 +6,18 @@ import com.finaccount.accountservice.jpa.AccountEntity;
 import com.finaccount.accountservice.jpa.AccountRepository;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
-public class AccountService {
+public class AccountService implements UserDetailsService {
     private final AccountRepository repository;
     private final BCryptPasswordEncoder passwordEncoder;
 
@@ -46,7 +51,31 @@ public class AccountService {
         return response;
     }
 
-    public AccountDto getAccountByAccountNumber(String accountNumber) {
-        return null;
+    public AccountDto getAccountByAccountNumber(String accountNumber) throws NoSuchElementException {
+        AccountEntity entity = repository.findByAccountNumber(accountNumber).orElseThrow();
+
+        AccountDto response = new ModelMapper().map(entity, AccountDto.class);
+
+        return response;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        try {
+            AccountDto dto = getAccountByAccountNumber(username);
+
+            return new User(
+                    dto.getAccountNumber(),
+                    dto.getPassword(),
+                    true,
+                    true,
+                    true,
+                    true,
+                    List.of()
+            );
+
+        } catch (NoSuchElementException e) {
+            throw new UsernameNotFoundException(username);
+        }
     }
 }
