@@ -1,12 +1,16 @@
 package com.finaccount.transactionservice.service;
 
+import com.finaccount.transactionservice.client.AccountServiceClient;
 import com.finaccount.transactionservice.dto.TransactionDto;
 import com.finaccount.transactionservice.dto.TransactionStatus;
 import com.finaccount.transactionservice.dto.TransactionType;
 import com.finaccount.transactionservice.jpa.TransactionEntity;
 import com.finaccount.transactionservice.jpa.TransactionRepository;
+import com.finaccount.transactionservice.vo.AccountRequest;
+import com.finaccount.transactionservice.vo.AccountResponse;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
@@ -15,24 +19,57 @@ import java.util.NoSuchElementException;
 @Service
 public class TransactionService {
     private final TransactionRepository repository;
+    private final AccountServiceClient accountService;
 
-    public TransactionService(TransactionRepository repository) {
+    public TransactionService(
+            TransactionRepository repository,
+            AccountServiceClient accountService
+    ) {
         this.repository = repository;
+        this.accountService = accountService;
     }
 
     public TransactionDto deposit(TransactionDto dto) {
-        ModelMapper mapper = new ModelMapper();
-        TransactionEntity entity = mapper.map(dto, TransactionEntity.class);
+        try {
+            ModelMapper mapper = new ModelMapper();
+            TransactionEntity entity = mapper.map(dto, TransactionEntity.class);
 
-        entity.setType(TransactionType.DEPOSIT);
-        entity.setStatus(TransactionStatus.PENDING);
-        entity.setCreatedAt(Instant.now());
+            entity.setType(TransactionType.DEPOSIT);
+            entity.setStatus(TransactionStatus.PENDING);
+            entity.setCreatedAt(Instant.now());
 
-        repository.save(entity);
+            TransactionEntity pending = repository.save(entity);
 
-        TransactionDto saved =  mapper.map(entity, TransactionDto.class);
+            AccountResponse account = accountService.getAccount(pending.getToAccountId());
 
-        return saved;
+            AccountRequest.AccountRequestBuilder builder = AccountRequest.builder();
+            builder.accountId(pending.getToAccountId());
+            builder.balance(account.getBalance() - pending.getAmount());
+            AccountRequest request = builder.build();
+            accountService.patchAccount(request);
+
+            pending.setStatus(TransactionStatus.SUCCESS);
+
+            TransactionEntity success = repository.save(entity);
+
+            TransactionDto saved =  mapper.map(success, TransactionDto.class);
+
+            return saved;
+
+        } catch (Exception e) {
+            ModelMapper mapper = new ModelMapper();
+            TransactionEntity entity = mapper.map(dto, TransactionEntity.class);
+
+            entity.setType(TransactionType.DEPOSIT);
+            entity.setStatus(TransactionStatus.FAILED);
+            entity.setCreatedAt(Instant.now());
+
+            TransactionEntity failed = repository.save(entity);
+
+            TransactionDto saved =  mapper.map(failed, TransactionDto.class);
+
+            return saved;
+        }
     }
 
     public TransactionDto withdraw(TransactionDto dto) {
