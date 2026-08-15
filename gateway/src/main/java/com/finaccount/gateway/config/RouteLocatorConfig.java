@@ -11,10 +11,10 @@ public class RouteLocatorConfig {
     public RouteLocator getRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
                 .route("transaction-service-h2console", route -> route
-                        .path("/transactions/h2-console/**")
+                        .path("/transaction-service/h2-console/**")
                         .filters(filter -> filter
                                 .rewritePath(
-                                        "/transactions/(?<segment>.*)",
+                                        "/transaction-service/(?<segment>.*)",
                                         "/${segment}"
                                 ))
                         .uri("lb://TRANSACTION-SERVICE")
