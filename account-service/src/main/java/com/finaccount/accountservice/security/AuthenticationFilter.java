@@ -5,6 +5,7 @@ import com.finaccount.accountservice.dto.AccountDto;
 import com.finaccount.accountservice.service.AccountService;
 import com.finaccount.accountservice.vo.LoginRequest;
 import com.finaccount.accountservice.vo.LoginResponse;
+import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
@@ -39,11 +40,11 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
     @Override
     public Authentication attemptAuthentication(
-            HttpServletRequest request,
-            HttpServletResponse response
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse
     ) throws AuthenticationException {
         try {
-            LoginRequest loginRequest = new ObjectMapper().readValue(request.getInputStream(), LoginRequest.class);
+            LoginRequest loginRequest = new ObjectMapper().readValue(httpRequest.getInputStream(), LoginRequest.class);
 
             String accountNumber = loginRequest.getAccountNumber();
             String password = loginRequest.getPassword();
@@ -61,41 +62,57 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
     // TODO
     @Override
     protected void successfulAuthentication(
-            HttpServletRequest request,
-            HttpServletResponse response,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse,
             FilterChain chain,
             Authentication authentication
     ) {
         try {
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
+            httpResponse.setStatus(HttpServletResponse.SC_OK);
+            httpResponse.setContentType("application/json");
+            httpResponse.setCharacterEncoding("UTF-8");
 
-            String accountNumber = ((User) authentication.getPrincipal()).getUsername();
-            AccountDto accountDto = accountService.getAccountByAccountNumber(accountNumber);
-            Integer accountId = accountDto.getAccountId();
+            AccountDto accountDto = createAccountDto(authentication, accountService);
+            String accountNumber = accountDto.getAccountNumber();
+            Integer accountId =  accountDto.getAccountId();
 
             String secret = environment.getProperty("token.secret");
             String expiration = environment.getProperty("token.expiration-in-days");
-
-            byte[] secretInBytes = secret.getBytes(StandardCharsets.UTF_8);
-            SecretKey secretKey = Keys.hmacShaKeyFor(secretInBytes);
-            Instant now = Instant.now();
-            String token = Jwts.builder()
-                    .subject(accountDto.getAccountNumber())
-                    .expiration(Date.from(now.plus(Long.parseLong(expiration), ChronoUnit.DAYS)))
-                    .issuedAt(Date.from(now))
-                    .signWith(secretKey)
-                    .compact();
+            String token = createToken(accountNumber, secret, expiration);
 
             LoginResponse loginResponse = new LoginResponse();
             loginResponse.setAccountId(accountId);
             loginResponse.setAccessToken(token);
 
-            new ObjectMapper().writeValue(response.getWriter(), loginResponse);
+            new ObjectMapper().writeValue(httpResponse.getWriter(), loginResponse);
 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private AccountDto createAccountDto(Authentication authentication, AccountService accountService) {
+        String accountNumber = ((User) authentication.getPrincipal()).getUsername();
+        AccountDto accountDto = accountService.getAccountByAccountNumber(accountNumber);
+
+        return accountDto;
+    }
+
+    private String createToken(String accountNumber, String secret, String expiration) {
+        Instant now = Instant.now();
+        Date exp = Date.from(now.plus(Long.parseLong(expiration), ChronoUnit.DAYS));
+        Date issuedAt =  Date.from(now);
+
+        byte[] secretInBytes = secret.getBytes(StandardCharsets.UTF_8);
+        SecretKey secretKey = Keys.hmacShaKeyFor(secretInBytes);
+
+        JwtBuilder builder = Jwts.builder();
+        builder.subject(accountNumber);
+        builder.expiration(exp);
+        builder.issuedAt(issuedAt);
+        builder.signWith(secretKey);
+        String token = builder.compact();
+
+        return token;
     }
 }
