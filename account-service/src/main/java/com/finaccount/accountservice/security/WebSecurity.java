@@ -4,6 +4,7 @@ import com.finaccount.accountservice.service.AccountService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -65,10 +66,16 @@ public class WebSecurity {
         return AbstractHttpConfigurer::disable;
     }
 
+    // TODO
     private Customizer<AuthorizeHttpRequestsConfigurer<HttpSecurity>
             .AuthorizationManagerRequestMatcherRegistry>
     getAuthorizeHttpRequestCustomizer() {
         return (registry) -> {
+            registry.requestMatchers("/h2-console/**").permitAll();
+            registry.requestMatchers("/actuator/**").permitAll();
+            registry.requestMatchers("/health-check/**").permitAll();
+            registry.requestMatchers("/welcome/**").permitAll();
+            registry.requestMatchers(HttpMethod.POST, "/accounts").permitAll();
             registry.anyRequest().permitAll();
         };
     }
