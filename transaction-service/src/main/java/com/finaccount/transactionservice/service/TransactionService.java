@@ -10,7 +10,6 @@ import com.finaccount.transactionservice.vo.AccountRequest;
 import com.finaccount.transactionservice.vo.AccountResponse;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
@@ -42,11 +41,9 @@ public class TransactionService {
 
             AccountResponse account = accountService.getAccount(pending.getToAccountId());
 
-            AccountRequest.AccountRequestBuilder builder = AccountRequest.builder();
-            builder.accountId(pending.getToAccountId());
-            builder.balance(account.getBalance() - pending.getAmount());
-            AccountRequest request = builder.build();
-            accountService.patchAccount(request);
+            AccountRequest request = new AccountRequest();
+            request.setBalance(account.getBalance() + pending.getAmount());
+            accountService.updateAccount(pending.getToAccountId(), request);
 
             pending.setStatus(TransactionStatus.SUCCESS);
 

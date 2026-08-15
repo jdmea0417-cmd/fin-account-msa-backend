@@ -10,6 +10,6 @@ public interface AccountServiceClient {
     @GetMapping("/accounts/{accountId}")
     AccountResponse getAccount(@PathVariable("accountId") Integer accountId);
 
-    @PatchMapping("/accounts")
-    AccountResponse patchAccount(@RequestBody AccountRequest request);
+    @PatchMapping("/accounts/{accountId}")
+    AccountResponse updateAccount(@PathVariable("accountId") Integer accountId, @RequestBody AccountRequest request);
 }

@@ -1,12 +1,14 @@
 package com.finaccount.transactionservice.vo;
 
-import lombok.Builder;
 import lombok.Data;
 
 @Data
-@Builder
 public class AccountRequest {
-    Integer accountId;
+    private String accountNumber;
 
-    Long balance;
+    private String ownerName;
+
+    private Long balance;
+
+    private AccountStatus status;
 }

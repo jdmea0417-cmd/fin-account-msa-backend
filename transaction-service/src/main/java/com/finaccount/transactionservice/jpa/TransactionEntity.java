@@ -8,8 +8,8 @@ import lombok.Data;
 import java.time.Instant;
 
 @Data
-@Table
 @Entity
+@Table(name = "transaction")
 public class TransactionEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,3 +35,4 @@ public class TransactionEntity {
     @Column(nullable = false)
     private Instant createdAt;
 }
+
