@@ -1,25 +1,25 @@
 services:
   gateway-service:
-    image: uniquecolor/gateway-service
+    image: uniquecolor/gateway-service:1.0.0
     build: ./gateway
     ports:
       - "8080:8080"
 
   eureka-service:
-    image: uniquecolor/eureka-service
+    image: uniquecolor/eureka-service:1.0.0
     build: ./eureka-server
 
   config-service:
-    image: uniquecolor/config-service
+    image: uniquecolor/config-service:1.0.0
     build: ./config-server
 
   account-service:
-    image: uniquecolor/account-service
+    image: uniquecolor/account-service:1.0.0
     build: ./account-service
     container_name: account-service
 
   transaction-service:
-    image: uniquecolor/transaction-service
+    image: uniquecolor/transaction-service:1.0.0
     build: ./transaction-service
     container_name: transaction-service
     depends_on:
@@ -29,7 +29,7 @@ services:
         condition: service_healthy
 
   notification-service:
-    image: uniquecolor/notification-service
+    image: uniquecolor/notification-service:1.0.0
     build: ./notification-service
     container_name: notification-service
     depends_on:
