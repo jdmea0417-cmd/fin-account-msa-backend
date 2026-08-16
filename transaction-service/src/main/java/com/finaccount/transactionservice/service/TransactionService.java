@@ -59,7 +59,6 @@ public class TransactionService {
         }
     }
 
-    @Transactional
     private TransactionDto addSuccessTransaction(TransactionDto dto) {
         ModelMapper mapper = new ModelMapper();
         TransactionEntity entity = mapper.map(dto, TransactionEntity.class);
@@ -79,7 +78,6 @@ public class TransactionService {
         return success;
     }
 
-    @Transactional
     private TransactionDto addFailedTransaction(TransactionDto dto) {
         ModelMapper mapper = new ModelMapper();
         TransactionEntity entity = mapper.map(dto, TransactionEntity.class);
