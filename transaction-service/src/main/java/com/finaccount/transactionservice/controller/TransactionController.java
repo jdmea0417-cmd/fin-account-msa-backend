@@ -1,6 +1,7 @@
 package com.finaccount.transactionservice.controller;
 
 import com.finaccount.transactionservice.dto.TransactionDto;
+import com.finaccount.transactionservice.dto.TransactionType;
 import com.finaccount.transactionservice.vo.TransactionRequest;
 import com.finaccount.transactionservice.vo.TransactionResponse;
 import com.finaccount.transactionservice.service.TransactionService;
@@ -31,8 +32,9 @@ public class TransactionController {
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
         TransactionDto dto = mapper.map(request, TransactionDto.class);
+        dto.setType(TransactionType.DEPOSIT);
 
-        TransactionDto deposited = service.deposit(dto);
+        TransactionDto deposited = service.addTransaction(dto);
 
         TransactionResponse response = mapper.map(deposited, TransactionResponse.class);
 
@@ -45,8 +47,9 @@ public class TransactionController {
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
         TransactionDto dto = mapper.map(request, TransactionDto.class);
+        dto.setType(TransactionType.WITHDRAW);
 
-        TransactionDto withdrawn = service.withdraw(dto);
+        TransactionDto withdrawn = service.addTransaction(dto);
 
         TransactionResponse response = mapper.map(withdrawn, TransactionResponse.class);
 
@@ -59,8 +62,9 @@ public class TransactionController {
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
         TransactionDto dto = mapper.map(request, TransactionDto.class);
+        dto.setType(TransactionType.TRANSFER);
 
-        TransactionDto transferred = service.transfer(dto);
+        TransactionDto transferred = service.addTransaction(dto);
 
         TransactionResponse response = mapper.map(transferred, TransactionResponse.class);
 
