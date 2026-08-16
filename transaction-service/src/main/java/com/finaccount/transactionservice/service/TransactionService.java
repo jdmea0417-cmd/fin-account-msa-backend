@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -51,7 +50,7 @@ public class TransactionService {
 
             return success;
 
-        } catch (ResponseStatusException e) {
+        } catch (IllegalStateException e) {
             TransactionDto failed = addFailedTransaction(dto);
 
             sendNotification(failed);
@@ -127,26 +126,50 @@ public class TransactionService {
         Integer accountId = transaction.getToAccountId();
         Long amount = transaction.getAmount();
 
-        AccountResponse response = accountService.getAccount(accountId);
+        CircuitBreaker circuitBreaker = circuitBreakerFactory.create("account-service");
+
+        AccountResponse response = circuitBreaker.run(
+                () -> accountService.getAccount(accountId),
+                throwable -> {
+                    throw new IllegalStateException();
+                }
+        );
 
         AccountRequest.AccountRequestBuilder builder = AccountRequest.builder();
         builder.balance(response.getBalance() + amount);
         AccountRequest request = builder.build();
 
-        accountService.updateAccount(accountId, request);
+        circuitBreaker.run(
+                () -> accountService.updateAccount(accountId, request),
+                throwable -> {
+                    throw new IllegalStateException();
+                }
+        );
     }
 
     private void updateAccountForWithdrawTransaction(TransactionDto transaction) {
         Integer accountId = transaction.getFromAccountId();
         Long amount = transaction.getAmount();
 
-        AccountResponse response = accountService.getAccount(accountId);
+        CircuitBreaker circuitBreaker = circuitBreakerFactory.create("account-service");
+
+        AccountResponse response = circuitBreaker.run(
+                () -> accountService.getAccount(accountId),
+                throwable -> {
+                    throw new IllegalStateException();
+                }
+        );
 
         AccountRequest.AccountRequestBuilder builder = AccountRequest.builder();
         builder.balance(response.getBalance() - amount);
         AccountRequest request = builder.build();
 
-        accountService.updateAccount(accountId, request);
+        circuitBreaker.run(
+                () -> accountService.updateAccount(accountId, request),
+                throwable -> {
+                    throw new IllegalStateException();
+                }
+        );
     }
 
     private void updateAccountForTransferTransaction(TransactionDto transaction) {
