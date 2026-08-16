@@ -11,10 +11,13 @@ import com.finaccount.transactionservice.vo.AccountResponse;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.modelmapper.ModelMapper;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -26,17 +29,21 @@ public class TransactionService {
     private final TransactionRepository repository;
     private final AccountServiceClient accountService;
     private final KafkaProducer<String, TransactionEvent> kafkaProducer;
+    private final CircuitBreakerFactory circuitBreakerFactory;
 
     public TransactionService(
             TransactionRepository repository,
             AccountServiceClient accountService,
-            KafkaProducer<String, TransactionEvent> kafkaProducer
+            KafkaProducer<String, TransactionEvent> kafkaProducer,
+            CircuitBreakerFactory circuitBreakerFactory
     ) {
         this.repository = repository;
         this.accountService = accountService;
         this.kafkaProducer = kafkaProducer;
+        this.circuitBreakerFactory = circuitBreakerFactory;
     }
 
+    @Transactional
     public TransactionDto addTransaction(TransactionDto dto) {
         try {
             TransactionDto success = addSuccessTransaction(dto);
@@ -162,6 +169,7 @@ public class TransactionService {
 
         ProducerRecord<String, TransactionEvent> record = new ProducerRecord<>(TOPIC, event);
 
-        kafkaProducer.send(record);
+        CircuitBreaker circuitBreaker = circuitBreakerFactory.create("notification-service");
+        circuitBreaker.run(() -> kafkaProducer.send(record), throwable -> null);
     }
 }
