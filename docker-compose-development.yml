@@ -2,16 +2,19 @@ services:
   gateway-service:
     image: uniquecolor/gateway-service:1.0.0
     build: ./gateway
+    container_name: gateway-service
     ports:
       - "8080:8080"
 
   eureka-service:
     image: uniquecolor/eureka-service:1.0.0
     build: ./eureka-server
+    container_name: eureka-service
 
   config-service:
     image: uniquecolor/config-service:1.0.0
     build: ./config-server
+    container_name: config-service
 
   account-service:
     image: uniquecolor/account-service:1.0.0
