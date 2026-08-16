@@ -15,7 +15,6 @@ import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
@@ -44,22 +43,16 @@ public class TransactionService {
 
     @Transactional
     public TransactionDto addTransaction(TransactionDto dto) {
-        try {
-            TransactionDto success = addSuccessTransaction(dto);
-            sendNotification(success);
+        TransactionDto pending = addPendingTransaction(dto);
 
-            return success;
+        TransactionDto updated = updateFromPendingTransaction(pending);
 
-        } catch (IllegalStateException e) {
-            TransactionDto failed = addFailedTransaction(dto);
+        sendNotification(updated);
 
-            sendNotification(failed);
-
-            return failed;
-        }
+        return updated;
     }
 
-    private TransactionDto addSuccessTransaction(TransactionDto dto) {
+    private TransactionDto addPendingTransaction(TransactionDto dto) {
         ModelMapper mapper = new ModelMapper();
         TransactionEntity entity = mapper.map(dto, TransactionEntity.class);
 
@@ -68,7 +61,24 @@ public class TransactionService {
         entity.setCreatedAt(Instant.now());
         entity = repository.save(entity);
 
-        this.updateAccount(dto);
+        TransactionDto pending = mapper.map(entity, TransactionDto.class);
+
+        return pending;
+    }
+
+    private TransactionDto updateFromPendingTransaction(TransactionDto pending) {
+        try {
+            this.updateAccount(pending);
+            return updateToSuccessTransaction(pending);
+
+        } catch (IllegalStateException e) {
+            return updateToFailedTransaction(pending);
+        }
+    }
+
+    private TransactionDto updateToSuccessTransaction(TransactionDto dto) {
+        ModelMapper mapper = new ModelMapper();
+        TransactionEntity entity = mapper.map(dto, TransactionEntity.class);
 
         entity.setStatus(TransactionStatus.SUCCESS);
         entity = repository.save(entity);
@@ -78,13 +88,11 @@ public class TransactionService {
         return success;
     }
 
-    private TransactionDto addFailedTransaction(TransactionDto dto) {
+    private TransactionDto updateToFailedTransaction(TransactionDto dto) {
         ModelMapper mapper = new ModelMapper();
         TransactionEntity entity = mapper.map(dto, TransactionEntity.class);
 
-        entity.setType(dto.getType());
         entity.setStatus(TransactionStatus.FAILED);
-        entity.setCreatedAt(Instant.now());
         entity = repository.save(entity);
 
         TransactionDto failed = mapper.map(entity, TransactionDto.class);
@@ -112,7 +120,7 @@ public class TransactionService {
         return dtos;
     }
 
-    private void updateAccount(TransactionDto transaction) throws ResponseStatusException {
+    private void updateAccount(TransactionDto transaction) throws IllegalStateException {
         switch (transaction.getType()) {
             case DEPOSIT -> updateAccountForDepositTransaction(transaction);
             case WITHDRAW -> updateAccountForWithdrawTransaction(transaction);
