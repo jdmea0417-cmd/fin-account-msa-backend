@@ -1,5 +1,6 @@
 package com.finaccount.transactionservice.service;
 
+import com.finaccount.transactionservice.TransactionEvent;
 import com.finaccount.transactionservice.client.AccountServiceClient;
 import com.finaccount.transactionservice.dto.TransactionDto;
 import com.finaccount.transactionservice.dto.TransactionStatus;
@@ -7,6 +8,8 @@ import com.finaccount.transactionservice.jpa.TransactionEntity;
 import com.finaccount.transactionservice.jpa.TransactionRepository;
 import com.finaccount.transactionservice.vo.AccountRequest;
 import com.finaccount.transactionservice.vo.AccountResponse;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,25 +21,33 @@ import java.util.NoSuchElementException;
 
 @Service
 public class TransactionService {
+    private static final String TOPIC = "fin.transaction.events";
+
     private final TransactionRepository repository;
     private final AccountServiceClient accountService;
+    private final KafkaProducer<String, TransactionEvent> kafkaProducer;
 
     public TransactionService(
             TransactionRepository repository,
-            AccountServiceClient accountService
+            AccountServiceClient accountService,
+            KafkaProducer<String, TransactionEvent> kafkaProducer
     ) {
         this.repository = repository;
         this.accountService = accountService;
+        this.kafkaProducer = kafkaProducer;
     }
 
     public TransactionDto addTransaction(TransactionDto dto) {
         try {
             TransactionDto success = addSuccessTransaction(dto);
+            sendNotification(success);
 
             return success;
 
         } catch (ResponseStatusException e) {
             TransactionDto failed = addFailedTransaction(dto);
+
+            sendNotification(failed);
 
             return failed;
         }
@@ -134,5 +145,23 @@ public class TransactionService {
     private void updateAccountForTransferTransaction(TransactionDto transaction) {
         updateAccountForDepositTransaction(transaction);
         updateAccountForWithdrawTransaction(transaction);
+    }
+
+    private void sendNotification(TransactionDto transaction) {
+        TransactionEvent.Builder builder = TransactionEvent.newBuilder();
+        builder.setTransactionId(String.valueOf(transaction.getTransactionId())); // TODO check type
+        builder.setAccountId(""); // TODO check name, check type
+        builder.setUserId(""); // TODO check name
+        builder.setTransactionType(transaction.getType().toString());
+        builder.setAmount(transaction.getAmount());
+        builder.setOccurredAt(transaction.getCreatedAt().toString()); // TODO check name
+        builder.setFromAccountId(String.valueOf(transaction.getFromAccountId())); // TODO check type
+        builder.setToAccountId(String.valueOf(transaction.getToAccountId())); // TODO check type
+        builder.setStatus(transaction.getStatus().toString());
+        TransactionEvent event = builder.build();
+
+        ProducerRecord<String, TransactionEvent> record = new ProducerRecord<>(TOPIC, event);
+
+        kafkaProducer.send(record);
     }
 }
