@@ -10,6 +10,8 @@ services:
     image: uniquecolor/eureka-service:1.0.0
     build: ./eureka-server
     container_name: eureka-service
+    ports:
+      - "8761:8761"
 
   config-service:
     image: uniquecolor/config-service:1.0.0
@@ -20,6 +22,8 @@ services:
     image: uniquecolor/account-service:1.0.0
     build: ./account-service
     container_name: account-service
+    environment:
+      - eureka.client.service-url.defaultZone=http://eureka-service:8761/eureka/
 
   transaction-service:
     image: uniquecolor/transaction-service:1.0.0
@@ -30,6 +34,10 @@ services:
         condition: service_healthy
       schema-registry:
         condition: service_healthy
+    environment:
+      - eureka.client.service-url.defaultZone=http://eureka-service:8761/eureka/
+      - spring.kafka.bootstrap-servers=kafka:9092
+      - spring.kafka.properties.schema.registry.url=http://schema-registry:8091
 
   notification-service:
     image: uniquecolor/notification-service:1.0.0
