@@ -52,7 +52,7 @@ public class AccountController {
     }
 
     @PatchMapping("/accounts/{accountId}")
-    public ResponseEntity<AccountResponse> updateBalance(
+    public ResponseEntity<AccountResponse> updateAccount(
             @PathVariable Integer accountId,
             @RequestBody AccountRequest request
     ) {
