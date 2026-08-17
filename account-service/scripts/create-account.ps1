@@ -1,0 +1,1 @@
+curl.exe --verbose --request POST http://localhost:8080/accounts --header "Content-Type: application/json" --data @example-account.json
