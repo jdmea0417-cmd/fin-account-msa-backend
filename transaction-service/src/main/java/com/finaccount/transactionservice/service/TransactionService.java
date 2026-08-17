@@ -178,6 +178,9 @@ public class TransactionService {
         );
     }
 
+    // TODO
+    // updateAccountForDepositTransaction은 정상처리되었는데,
+    // updateAccountForWithdrawTransaction에서 문제가 생긴다면 어떻게 해야하는가
     private void updateAccountForTransferTransaction(TransactionDto transaction) {
         updateAccountForDepositTransaction(transaction);
         updateAccountForWithdrawTransaction(transaction);
