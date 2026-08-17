@@ -36,7 +36,7 @@ public class AccountService implements UserDetailsService {
         entity.setStatus(AccountStatus.ACTIVE);
         entity.setPassword(passwordEncoder.encode(dto.getPassword()));
 
-        repository.save(entity);
+        entity = repository.save(entity);
 
         AccountDto created = mapper.map(entity, AccountDto.class);
 

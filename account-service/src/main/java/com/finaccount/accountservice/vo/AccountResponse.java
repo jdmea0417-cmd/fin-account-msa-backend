@@ -5,6 +5,8 @@ import lombok.Data;
 
 @Data
 public class AccountResponse {
+    private Integer accountId;
+
     private String accountNumber;
 
     private String ownerName;
