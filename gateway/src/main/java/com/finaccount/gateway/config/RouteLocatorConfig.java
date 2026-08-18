@@ -24,6 +24,29 @@ public class RouteLocatorConfig {
                         .filters(filter -> filter)
                         .uri("lb://TRANSACTION-SERVICE")
                 )
+                .route("account-service-login", route -> route
+                        .path("/auth/login/**")
+                        .filters(filter -> filter
+                                .rewritePath(
+                                        "/auth/(?<segment>.*)",
+                                        "/${segment}"
+                                ))
+                        .uri("lb://ACCOUNT-SERVICE")
+                )
+                .route("account-service-h2console", route -> route
+                        .path("/account-service/h2-console/**")
+                        .filters(filter -> filter
+                                .rewritePath(
+                                        "/account-service/(?<segment>.*)",
+                                        "/${segment}"
+                                ))
+                        .uri("lb://ACCOUNT-SERVICE")
+                )
+                .route("account-service", route -> route
+                        .path("/accounts/**")
+                        .filters(filter -> filter)
+                        .uri("lb://ACCOUNT-SERVICE")
+                )
                 .build();
     }
 }
