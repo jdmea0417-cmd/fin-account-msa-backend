@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
  * 알림 로그 엔티티.
  * Kafka로부터 수신한 TransactionEvent를 사람이 읽을 수 있는 알림 메시지로
  * 변환하여 저장한다 (실제 이메일/SMS 발송 대신 로그 저장으로 대체).
+ *
+ * v3: Avro 스키마 정합성 반영 — transactionId/fromAccountId/toAccountId를 Integer로 변경,
+ * accountId 필드 제거.
  */
 @Entity
 @Table(name = "notification_log")
@@ -18,10 +21,7 @@ public class NotificationEntity {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String transactionId;
-
-    @Column(nullable = false)
-    private String accountId;
+    private Integer transactionId;
 
     @Column(nullable = false)
     private String userId;
@@ -39,10 +39,10 @@ public class NotificationEntity {
     private String status;
 
     @Column
-    private String fromAccountId;
+    private Integer fromAccountId;
 
     @Column
-    private String toAccountId;
+    private Integer toAccountId;
 
     @Column(nullable = false)
     private LocalDateTime receivedAt;
@@ -51,12 +51,11 @@ public class NotificationEntity {
         // JPA
     }
 
-    public NotificationEntity(String transactionId, String accountId, String userId,
+    public NotificationEntity(Integer transactionId, String userId,
                                String transactionType, Long amount, String message,
-                               String status, String fromAccountId, String toAccountId,
+                               String status, Integer fromAccountId, Integer toAccountId,
                                LocalDateTime receivedAt) {
         this.transactionId = transactionId;
-        this.accountId = accountId;
         this.userId = userId;
         this.transactionType = transactionType;
         this.amount = amount;
@@ -71,12 +70,8 @@ public class NotificationEntity {
         return id;
     }
 
-    public String getTransactionId() {
+    public Integer getTransactionId() {
         return transactionId;
-    }
-
-    public String getAccountId() {
-        return accountId;
     }
 
     public String getUserId() {
@@ -99,11 +94,11 @@ public class NotificationEntity {
         return status;
     }
 
-    public String getFromAccountId() {
+    public Integer getFromAccountId() {
         return fromAccountId;
     }
 
-    public String getToAccountId() {
+    public Integer getToAccountId() {
         return toAccountId;
     }
 

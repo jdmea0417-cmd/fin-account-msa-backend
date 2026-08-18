@@ -23,6 +23,13 @@ Confluent Schema Registry는 Kafka 토픽에 발행되는 메시지의 **Avro �
 - 위 필드들은 모두 default 값을 가지므로 BACKWARD 호환성 유지됨
 - Producer(transaction-service)/Consumer(notification-service) 스키마 파일이 동일하게 동기화됨 (이전에는 Consumer만 v2였던 불일치를 해소)
 
+**v3 변경사항** (Transaction Service 코드/DB 정합성 리뷰 반영, ⚠️ BACKWARD 비호환 BREAKING CHANGE):
+- `transactionId` / `fromAccountId` / `toAccountId`: `string`(UUID 전제) → `int`로 변경 — DB/요청·응답 데이터 자료형과 통일
+- `accountId` 필드 제거 — deposit/withdraw/transfer 모두 `fromAccountId`/`toAccountId`로 대체되어 하위 호환용 필드 불필요
+- `occurredAt` → `createdAt`으로 명명 변경 — Transaction Service의 `createdAt` 필드와 통일
+- `userId`는 유지 (향후 `userName`으로 변경 예정이나 아직 미반영)
+- 타입 변경 + 필드 제거가 포함되어 있어 기존 컨슈머와 호환되지 않음. 프로듀서(transaction-service)/컨슈머(notification-service) **동시 배포 필수**, 스키마 레지스트리 호환성 모드(BACKWARD) 하에서는 정상 등록되지 않을 수 있으므로 필요 시 subject 호환성 모드를 일시적으로 `NONE`으로 낮추거나 새 subject로 분리하는 것을 검토할 것
+
 **추가 신뢰성 개선** (notification-service):
 - `notification_log.transaction_id` UNIQUE 제약 + 저장 전 존재 확인으로 멱등성 보장 (Kafka 재전송/Consumer 재시작 시 중복 저장 방지)
 - `ErrorHandlingDeserializer` + `DefaultErrorHandler`(FixedBackOff 1초×3회) + `DeadLetterPublishingRecoverer`로 역직렬화/저장 실패 시 `fin.transaction.events.DLT` 토픽으로 재발행
