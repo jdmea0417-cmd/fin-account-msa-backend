@@ -1,6 +1,6 @@
 package com.finaccounthub.notification.listener;
 
-import com.finaccounthub.avro.TransactionEvent;
+import com.finaccount.transactionservice.TransactionEvent;
 import com.finaccounthub.notification.entity.NotificationEntity;
 import com.finaccounthub.notification.repository.NotificationRepository;
 import org.slf4j.Logger;
