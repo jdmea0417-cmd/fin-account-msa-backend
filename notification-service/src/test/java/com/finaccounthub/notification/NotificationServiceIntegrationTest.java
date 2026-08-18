@@ -20,8 +20,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -37,6 +37,9 @@ import static org.awaitility.Awaitility.await;
  * 실제 docker-compose의 Kafka/Schema Registry 대신 spring-kafka-test의 EmbeddedKafka와
  * Confluent의 MockSchemaRegistryClient(schema.registry.url=mock://test-scope)를 사용해
  * 외부 인프라 없이 CI에서도 실행 가능하게 구성했다.
+ *
+ * v3: Avro 스키마 정합성 반영 — transactionId/accountId(테스트용 키)/fromAccountId/toAccountId를
+ * int로 변경, accountId 필드는 스키마에서 제거됨.
  */
 @SpringBootTest
 @EmbeddedKafka(partitions = 1, topics = {"fin.transaction.events.test"})
@@ -55,6 +58,12 @@ class NotificationServiceIntegrationTest {
     @Value("${kafka.topic.transaction-events}")
     private String topic;
 
+    private static final AtomicInteger TX_ID_SEQ = new AtomicInteger(900_000);
+
+    private static int nextTransactionId() {
+        return TX_ID_SEQ.incrementAndGet();
+    }
+
     private KafkaTemplate<String, Object> testProducerTemplate() {
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaBroker.getBrokersAsString());
@@ -66,15 +75,14 @@ class NotificationServiceIntegrationTest {
         return new KafkaTemplate<>(pf);
     }
 
-    private TransactionEvent buildEvent(String transactionId, String accountId, String type,
-                                         long amount, String from, String to, String status) {
+    private TransactionEvent buildEvent(int transactionId, String type,
+                                         long amount, Integer from, Integer to, String status) {
         return TransactionEvent.newBuilder()
                 .setTransactionId(transactionId)
-                .setAccountId(accountId)
                 .setUserId("USER-0001")
                 .setTransactionType(type)
                 .setAmount(amount)
-                .setOccurredAt(Instant.now().toString())
+                .setCreatedAt(Instant.now().toString())
                 .setFromAccountId(from)
                 .setToAccountId(to)
                 .setStatus(status)
@@ -83,14 +91,14 @@ class NotificationServiceIntegrationTest {
 
     @Test
     void producerToConsumerToQueryApi_endToEnd() {
-        String transactionId = UUID.randomUUID().toString();
-        String accountId = "ACC-1001";
+        int transactionId = nextTransactionId();
+        int accountId = 1001;
 
-        TransactionEvent event = buildEvent(transactionId, accountId, "DEPOSIT", 50_000L,
+        TransactionEvent event = buildEvent(transactionId, "DEPOSIT", 50_000L,
                 null, accountId, "SUCCESS");
 
         // 1) Producer 발행 (Avro + Mock Schema Registry에 자동 등록)
-        testProducerTemplate().send(topic, accountId, event);
+        testProducerTemplate().send(topic, String.valueOf(accountId), event);
 
         // 2) Consumer가 수신하여 notification_log에 저장할 때까지 대기
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() ->
@@ -104,12 +112,11 @@ class NotificationServiceIntegrationTest {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("저장된 알림을 찾을 수 없음: " + transactionId));
 
-        assertThat(saved.getAccountId()).isEqualTo(accountId);
         assertThat(saved.getTransactionType()).isEqualTo("DEPOSIT");
         assertThat(saved.getAmount()).isEqualTo(50_000L);
         assertThat(saved.getStatus()).isEqualTo("SUCCESS");
         assertThat(saved.getToAccountId()).isEqualTo(accountId);
-        assertThat(saved.getMessage()).contains(accountId).contains("입금");
+        assertThat(saved.getMessage()).contains(String.valueOf(accountId)).contains("입금");
 
         List<NotificationEntity> byUser = notificationController.getNotificationsByUser("USER-0001");
         assertThat(byUser).anyMatch(n -> n.getTransactionId().equals(transactionId));
@@ -117,17 +124,17 @@ class NotificationServiceIntegrationTest {
 
     @Test
     void duplicateTransactionId_isNotSavedTwice_idempotency() {
-        String transactionId = UUID.randomUUID().toString();
-        String accountId = "ACC-2002";
+        int transactionId = nextTransactionId();
+        int accountId = 2002;
 
-        TransactionEvent event = buildEvent(transactionId, accountId, "WITHDRAW", 10_000L,
+        TransactionEvent event = buildEvent(transactionId, "WITHDRAW", 10_000L,
                 accountId, null, "SUCCESS");
 
         KafkaTemplate<String, Object> producer = testProducerTemplate();
 
         // 동일 transactionId를 두 번 발행 (Kafka 재전송/재처리 시나리오 시뮬레이션)
-        producer.send(topic, accountId, event);
-        producer.send(topic, accountId, event);
+        producer.send(topic, String.valueOf(accountId), event);
+        producer.send(topic, String.valueOf(accountId), event);
 
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() ->
                 assertThat(notificationRepository.existsByTransactionId(transactionId)).isTrue()
@@ -144,12 +151,12 @@ class NotificationServiceIntegrationTest {
 
     @Test
     void transferEvent_showsFromAndToAccountInMessage() {
-        String transactionId = UUID.randomUUID().toString();
-        String from = "ACC-3001";
-        String to = "ACC-3002";
+        int transactionId = nextTransactionId();
+        int from = 3001;
+        int to = 3002;
 
-        TransactionEvent event = buildEvent(transactionId, from, "TRANSFER", 30_000L, from, to, "SUCCESS");
-        testProducerTemplate().send(topic, from, event);
+        TransactionEvent event = buildEvent(transactionId, "TRANSFER", 30_000L, from, to, "SUCCESS");
+        testProducerTemplate().send(topic, String.valueOf(from), event);
 
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() ->
                 assertThat(notificationRepository.existsByTransactionId(transactionId)).isTrue()
@@ -162,6 +169,6 @@ class NotificationServiceIntegrationTest {
 
         assertThat(saved.getFromAccountId()).isEqualTo(from);
         assertThat(saved.getToAccountId()).isEqualTo(to);
-        assertThat(saved.getMessage()).contains(from).contains(to);
+        assertThat(saved.getMessage()).contains(String.valueOf(from)).contains(String.valueOf(to));
     }
 }

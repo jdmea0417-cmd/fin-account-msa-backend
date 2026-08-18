@@ -32,14 +32,13 @@ COMPATIBLE_SCHEMA=$(cat <<'EOF'
   "name": "TransactionEvent",
   "namespace": "com.finaccounthub.avro",
   "fields": [
-    { "name": "transactionId", "type": "string" },
-    { "name": "accountId", "type": "string" },
+    { "name": "transactionId", "type": "int" },
     { "name": "userId", "type": "string" },
     { "name": "transactionType", "type": "string" },
     { "name": "amount", "type": "long" },
-    { "name": "occurredAt", "type": "string" },
-    { "name": "fromAccountId", "type": ["null", "string"], "default": null },
-    { "name": "toAccountId", "type": ["null", "string"], "default": null },
+    { "name": "createdAt", "type": "string" },
+    { "name": "fromAccountId", "type": ["null", "int"], "default": null },
+    { "name": "toAccountId", "type": ["null", "int"], "default": null },
     { "name": "status", "type": "string", "default": "SUCCESS" },
     { "name": "channel", "type": "string", "default": "MOBILE" }
   ]
@@ -71,14 +70,13 @@ INCOMPATIBLE_SCHEMA=$(cat <<'EOF'
   "name": "TransactionEvent",
   "namespace": "com.finaccounthub.avro",
   "fields": [
-    { "name": "transactionId", "type": "string" },
-    { "name": "accountId", "type": "string" },
+    { "name": "transactionId", "type": "int" },
     { "name": "userId", "type": "string" },
     { "name": "transactionType", "type": "string" },
     { "name": "amount", "type": "long" },
-    { "name": "occurredAt", "type": "string" },
-    { "name": "fromAccountId", "type": ["null", "string"], "default": null },
-    { "name": "toAccountId", "type": ["null", "string"], "default": null },
+    { "name": "createdAt", "type": "string" },
+    { "name": "fromAccountId", "type": ["null", "int"], "default": null },
+    { "name": "toAccountId", "type": ["null", "int"], "default": null },
     { "name": "status", "type": "string", "default": "SUCCESS" },
     { "name": "channel", "type": "string" }
   ]
