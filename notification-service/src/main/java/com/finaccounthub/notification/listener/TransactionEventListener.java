@@ -49,7 +49,7 @@ public class TransactionEventListener {
 
         NotificationEntity entity = new NotificationEntity(
                 transactionId,
-                event.getUserId().toString(),
+                event.getOwnerName().toString(),
                 event.getTransactionType().toString(),
                 event.getAmount(),
                 message,

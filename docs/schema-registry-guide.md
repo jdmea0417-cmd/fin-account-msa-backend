@@ -30,6 +30,9 @@ Confluent Schema Registry는 Kafka 토픽에 발행되는 메시지의 **Avro �
 - `userId`는 유지 (향후 `userName`으로 변경 예정이나 아직 미반영)
 - 타입 변경 + 필드 제거가 포함되어 있어 기존 컨슈머와 호환되지 않음. 프로듀서(transaction-service)/컨슈머(notification-service) **동시 배포 필수**, 스키마 레지스트리 호환성 모드(BACKWARD) 하에서는 정상 등록되지 않을 수 있으므로 필요 시 subject 호환성 모드를 일시적으로 `NONE`으로 낮추거나 새 subject로 분리하는 것을 검토할 것
 
+**v4 변경사항**:
+- `userId` → `ownerName`으로 필드명 변경 — Account Service의 `ownerName` 필드와 통일. 조회 API `GET /notifications/{ownerName}`, Repository `findByOwnerNameOrderByReceivedAtDesc`도 함께 변경됨
+
 **추가 신뢰성 개선** (notification-service):
 - `notification_log.transaction_id` UNIQUE 제약 + 저장 전 존재 확인으로 멱등성 보장 (Kafka 재전송/Consumer 재시작 시 중복 저장 방지)
 - `ErrorHandlingDeserializer` + `DefaultErrorHandler`(FixedBackOff 1초×3회) + `DeadLetterPublishingRecoverer`로 역직렬화/저장 실패 시 `fin.transaction.events.DLT` 토픽으로 재발행
