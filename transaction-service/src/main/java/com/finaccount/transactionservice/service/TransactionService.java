@@ -188,14 +188,13 @@ public class TransactionService {
 
     private void sendNotification(TransactionDto transaction) {
         TransactionEvent.Builder builder = TransactionEvent.newBuilder();
-        builder.setTransactionId(String.valueOf(transaction.getTransactionId())); // TODO check type
-        builder.setAccountId(""); // TODO check name, check type
-        builder.setUserId(""); // TODO check name
+        builder.setTransactionId(transaction.getTransactionId());
+        builder.setOwnerName(""); // TODO
         builder.setTransactionType(transaction.getType().toString());
         builder.setAmount(transaction.getAmount());
-        builder.setOccurredAt(transaction.getCreatedAt().toString()); // TODO check name
-        builder.setFromAccountId(String.valueOf(transaction.getFromAccountId())); // TODO check type
-        builder.setToAccountId(String.valueOf(transaction.getToAccountId())); // TODO check type
+        builder.setCreatedAt(transaction.getCreatedAt().toString());
+        builder.setFromAccountId(transaction.getFromAccountId());
+        builder.setToAccountId(transaction.getToAccountId());
         builder.setStatus(transaction.getStatus().toString());
         TransactionEvent event = builder.build();
 
