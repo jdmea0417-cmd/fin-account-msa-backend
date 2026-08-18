@@ -38,7 +38,7 @@ public class AccountController {
             ModelMapper mapper = new ModelMapper();
             mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
-            AccountDto dto = service.getAccount(accountId);
+            AccountDto dto = service.getAccountByAccountId(accountId);
 
             AccountResponse response = mapper.map(dto, AccountResponse.class);
 
