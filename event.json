@@ -1,1 +1,0 @@
-﻿{"transactionId":"test-001","accountId":"ACC-0001","userId":"USER-0001","transactionType":"DEPOSIT","amount":50000,"occurredAt":"2026-08-14T00:00:00Z","fromAccountId":null,"toAccountId":{"string":"ACC-0001"},"status":"SUCCESS"}
