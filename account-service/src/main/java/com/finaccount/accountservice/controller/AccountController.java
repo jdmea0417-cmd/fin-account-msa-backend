@@ -25,9 +25,11 @@ public class AccountController {
         ModelMapper mapper = new ModelMapper();
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
-        AccountDto dto = service.createAccount(mapper.map(request, AccountDto.class));
+        AccountDto dto =  mapper.map(request, AccountDto.class);
 
-        AccountResponse response = mapper.map(dto, AccountResponse.class);
+        AccountDto created = service.createAccount(dto);
+
+        AccountResponse response = mapper.map(created, AccountResponse.class);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -41,6 +43,28 @@ public class AccountController {
             AccountDto dto = service.getAccountByAccountId(accountId);
 
             AccountResponse response = mapper.map(dto, AccountResponse.class);
+
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    @PatchMapping("/accounts/{accountId}")
+    public ResponseEntity<AccountResponse> updateAccount(
+            @PathVariable Integer accountId,
+            @RequestBody AccountRequest request
+    ) {
+        try {
+            ModelMapper mapper = new ModelMapper();
+            mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+
+            AccountDto dto = mapper.map(request, AccountDto.class);
+
+            AccountDto updated = service.updateAccount(accountId, dto);
+
+            AccountResponse response = mapper.map(updated, AccountResponse.class);
 
             return ResponseEntity.status(HttpStatus.OK).body(response);
 

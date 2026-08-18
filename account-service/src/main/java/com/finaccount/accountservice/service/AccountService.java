@@ -46,17 +46,17 @@ public class AccountService implements UserDetailsService {
     public AccountDto getAccountByAccountId(Integer accountId) throws NoSuchElementException {
         AccountEntity entity = repository.findById(accountId).orElseThrow();
 
-        AccountDto response = new ModelMapper().map(entity, AccountDto.class);
+        AccountDto dto = new ModelMapper().map(entity, AccountDto.class);
 
-        return response;
+        return dto;
     }
 
     public AccountDto getAccountByAccountNumber(String accountNumber) throws NoSuchElementException {
         AccountEntity entity = repository.findByAccountNumber(accountNumber).orElseThrow();
 
-        AccountDto response = new ModelMapper().map(entity, AccountDto.class);
+        AccountDto dto = new ModelMapper().map(entity, AccountDto.class);
 
-        return response;
+        return dto;
     }
 
     @Override
@@ -77,5 +77,31 @@ public class AccountService implements UserDetailsService {
         } catch (NoSuchElementException e) {
             throw new UsernameNotFoundException(username);
         }
+    }
+
+    public AccountDto updateAccount(Integer accountId, AccountDto dto) throws NoSuchElementException {
+        AccountEntity entity = repository.findById(accountId).orElseThrow();
+
+        if (isBalanceToBeUpdated(dto)) {
+            entity.setBalance(dto.getBalance());
+        }
+
+        if (isStatusToBeUpdated(dto)) {
+            entity.setStatus(dto.getStatus());
+        }
+
+        AccountEntity saved = repository.save(entity);
+
+        AccountDto account = new ModelMapper().map(saved, AccountDto.class);
+
+        return account;
+    }
+
+    private boolean isBalanceToBeUpdated(AccountDto dto) {
+        return dto.getBalance() != null;
+    }
+
+    private boolean isStatusToBeUpdated(AccountDto dto) {
+        return dto.getStatus() != null;
     }
 }
