@@ -6,18 +6,13 @@
 	"fields": [
 		{
 			"name": "transactionId",
-			"type": "string",
-			"doc": "거래 고유 ID (UUID)"
+			"type": "int",
+			"doc": "거래 고유 ID"
 		},
 		{
-			"name": "accountId",
+			"name": "ownerName",
 			"type": "string",
-			"doc": "거래 대상 계좌 ID (하위 호환용, DEPOSIT/WITHDRAW 시 대상 계좌, TRANSFER 시 fromAccountId와 동일)"
-		},
-		{
-			"name": "userId",
-			"type": "string",
-			"doc": "거래 요청 사용자 ID"
+			"doc": "거래 요청 사용자 이름"
 		},
 		{
 			"name": "transactionType",
@@ -30,7 +25,7 @@
 			"doc": "거래 금액 (원 단위)"
 		},
 		{
-			"name": "occurredAt",
+			"name": "createdAt",
 			"type": "string",
 			"doc": "거래 발생 시각 (ISO-8601)"
 		},
@@ -38,7 +33,7 @@
 			"name": "fromAccountId",
 			"type": [
 				"null",
-				"string"
+				"int"
 			],
 			"default": null,
 			"doc": "출금/이체 출발 계좌 ID (DEPOSIT은 null). 요구사항 정리(2) API 응답의 fromAccountId 대응"
@@ -47,7 +42,7 @@
 			"name": "toAccountId",
 			"type": [
 				"null",
-				"string"
+				"int"
 			],
 			"default": null,
 			"doc": "입금/이체 도착 계좌 ID (WITHDRAW는 null). 요구사항 정리(2) API 응답의 toAccountId 대응"
