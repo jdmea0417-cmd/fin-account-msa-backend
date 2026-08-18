@@ -10,20 +10,6 @@ public class RouteLocatorConfig {
     @Bean
     public RouteLocator getRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
-                .route("transaction-service-h2console", route -> route
-                        .path("/transaction-service/h2-console/**")
-                        .filters(filter -> filter
-                                .rewritePath(
-                                        "/transaction-service/(?<segment>.*)",
-                                        "/${segment}"
-                                ))
-                        .uri("lb://TRANSACTION-SERVICE")
-                )
-                .route("transaction-service", route -> route
-                        .path("/transactions/**")
-                        .filters(filter -> filter)
-                        .uri("lb://TRANSACTION-SERVICE")
-                )
                 .route("account-service-login", route -> route
                         .path("/auth/login/**")
                         .filters(filter -> filter
@@ -46,6 +32,20 @@ public class RouteLocatorConfig {
                         .path("/accounts/**")
                         .filters(filter -> filter)
                         .uri("lb://ACCOUNT-SERVICE")
+                )
+                .route("transaction-service-h2console", route -> route
+                        .path("/transaction-service/h2-console/**")
+                        .filters(filter -> filter
+                                .rewritePath(
+                                        "/transaction-service/(?<segment>.*)",
+                                        "/${segment}"
+                                ))
+                        .uri("lb://TRANSACTION-SERVICE")
+                )
+                .route("transaction-service", route -> route
+                        .path("/transactions/**")
+                        .filters(filter -> filter)
+                        .uri("lb://TRANSACTION-SERVICE")
                 )
                 .build();
     }

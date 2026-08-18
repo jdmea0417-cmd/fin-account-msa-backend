@@ -102,8 +102,7 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
         Date exp = Date.from(now.plus(Long.parseLong(expiration), ChronoUnit.DAYS));
         Date issuedAt =  Date.from(now);
 
-        byte[] secretInBytes = secret.getBytes(StandardCharsets.UTF_8);
-        SecretKey secretKey = Keys.hmacShaKeyFor(secretInBytes);
+        SecretKey secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
 
         JwtBuilder builder = Jwts.builder();
         builder.subject(accountNumber);
