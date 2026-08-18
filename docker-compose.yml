@@ -1,7 +1,69 @@
 services:
-  # ---------------------------------------------------------------
-  # 1. Kafka (KRaft 모드, Zookeeper 불필요, 단일 노드)
-  # ---------------------------------------------------------------
+  gateway-service:
+    image: uniquecolor/gateway-service:1.0.0
+    build: ./gateway
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      - eureka.client.service-url.defaultZone=http://eureka-service:8761/eureka/
+      - spring.cloud.gateway.globalcors.add-to-simple-url-handler-mapping=true
+      - spring.cloud.gateway.globalcors.cors-configurations.[/**].allowed-origins=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
+      - spring.cloud.gateway.globalcors.cors-configurations.[/**].allowed-origin-patterns=http://localhost:*,http://127.0.0.1:*
+      - spring.cloud.gateway.globalcors.cors-configurations.[/**].allowed-methods=GET,POST,PUT,DELETE,OPTIONS
+      - spring.cloud.gateway.globalcors.cors-configurations.[/**].allowed-headers=*
+      - spring.cloud.gateway.globalcors.cors-configurations.[/**].allow-credentials=true
+
+  eureka-service:
+    image: uniquecolor/eureka-service:1.0.0
+    build: ./eureka-server
+    container_name: eureka-service
+    ports:
+      - "8761:8761"
+
+  config-service:
+    image: uniquecolor/config-service:1.0.0
+    build: ./config-server
+    container_name: config-service
+
+  account-service:
+    image: uniquecolor/account-service:1.0.0
+    build: ./account-service
+    container_name: account-service
+    environment:
+      - eureka.client.service-url.defaultZone=http://eureka-service:8761/eureka/
+
+  transaction-service:
+    image: uniquecolor/transaction-service:1.0.0
+    build: ./transaction-service
+    container_name: transaction-service
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    environment:
+      - eureka.client.service-url.defaultZone=http://eureka-service:8761/eureka/
+      - spring.kafka.bootstrap-servers=kafka:9092
+      - spring.kafka.properties.schema.registry.url=http://schema-registry:8081
+
+  notification-service:
+    image: uniquecolor/notification-service:1.0.0
+    build: ./notification-service
+    container_name: notification-service
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "8085:8085"
+    environment:
+      spring.datasource.url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1; # 임시조치
+      eureka.client.service-url.defaultZone: http://eureka-service:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     container_name: kafka
@@ -30,9 +92,6 @@ services:
       timeout: 10s
       retries: 10
 
-  # ---------------------------------------------------------------
-  # 2. Confluent Schema Registry
-  # ---------------------------------------------------------------
   schema-registry:
     image: confluentinc/cp-schema-registry:7.6.1
     container_name: schema-registry
@@ -41,7 +100,7 @@ services:
       kafka:
         condition: service_healthy
     ports:
-      - "8091:8081"   # 호스트 8091 -> 컨테이너 8081
+      - "8091:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
@@ -54,9 +113,6 @@ services:
       timeout: 10s
       retries: 10
 
-  # ---------------------------------------------------------------
-  # 3. Kafka UI
-  # ---------------------------------------------------------------
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
@@ -69,27 +125,6 @@ services:
       KAFKA_CLUSTERS_0_NAME: fin-account-hub
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
-
-  # ---------------------------------------------------------------
-  # 4. 담당 서비스: notification-service
-  # (Eureka, Config Server 등 타 서비스는 전체 스택 또는 개별 구동 시 연동)
-  # ---------------------------------------------------------------
-  notification-service:
-    build: ./notification-service
-    container_name: fin-notification
-    hostname: notification-service
-    depends_on:
-      kafka:
-        condition: service_healthy
-      schema-registry:
-        condition: service_healthy
-    ports:
-      - "8085:8085"
-    environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      CONFIG_SERVER_URI: http://config-server:8888
-      EUREKA_URI: http://eureka-server:8761/eureka/
 
 volumes:
   kafka-data:
