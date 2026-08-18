@@ -33,7 +33,7 @@ COMPATIBLE_SCHEMA=$(cat <<'EOF'
   "namespace": "com.finaccounthub.avro",
   "fields": [
     { "name": "transactionId", "type": "int" },
-    { "name": "userId", "type": "string" },
+    { "name": "ownerName", "type": "string" },
     { "name": "transactionType", "type": "string" },
     { "name": "amount", "type": "long" },
     { "name": "createdAt", "type": "string" },
@@ -71,7 +71,7 @@ INCOMPATIBLE_SCHEMA=$(cat <<'EOF'
   "namespace": "com.finaccounthub.avro",
   "fields": [
     { "name": "transactionId", "type": "int" },
-    { "name": "userId", "type": "string" },
+    { "name": "ownerName", "type": "string" },
     { "name": "transactionType", "type": "string" },
     { "name": "amount", "type": "long" },
     { "name": "createdAt", "type": "string" },

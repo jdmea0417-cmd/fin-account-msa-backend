@@ -35,8 +35,8 @@ public class NotificationController {
     }
 
     /** 사용자별 알림 로그 조회 (최신순) */
-    @GetMapping("/notifications/{userId}")
-    public List<NotificationEntity> getNotificationsByUser(@PathVariable String userId) {
-        return notificationRepository.findByUserIdOrderByReceivedAtDesc(userId);
+    @GetMapping("/notifications/{ownerName}")
+    public List<NotificationEntity> getNotificationsByUser(@PathVariable String ownerName) {
+        return notificationRepository.findByOwnerNameOrderByReceivedAtDesc(ownerName);
     }
 }
