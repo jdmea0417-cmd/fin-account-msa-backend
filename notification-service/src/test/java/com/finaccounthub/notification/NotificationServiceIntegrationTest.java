@@ -1,6 +1,6 @@
 package com.finaccounthub.notification;
 
-import com.finaccounthub.avro.TransactionEvent;
+import com.finaccount.transactionservice.TransactionEvent;
 import com.finaccounthub.notification.controller.NotificationController;
 import com.finaccounthub.notification.entity.NotificationEntity;
 import com.finaccounthub.notification.repository.NotificationRepository;
