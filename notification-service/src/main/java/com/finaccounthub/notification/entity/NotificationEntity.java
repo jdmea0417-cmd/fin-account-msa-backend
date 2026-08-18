@@ -24,7 +24,7 @@ public class NotificationEntity {
     private Integer transactionId;
 
     @Column(nullable = false)
-    private String userId;
+    private String ownerName;
 
     @Column(nullable = false)
     private String transactionType;
@@ -51,12 +51,12 @@ public class NotificationEntity {
         // JPA
     }
 
-    public NotificationEntity(Integer transactionId, String userId,
+    public NotificationEntity(Integer transactionId, String ownerName,
                                String transactionType, Long amount, String message,
                                String status, Integer fromAccountId, Integer toAccountId,
                                LocalDateTime receivedAt) {
         this.transactionId = transactionId;
-        this.userId = userId;
+        this.ownerName = ownerName;
         this.transactionType = transactionType;
         this.amount = amount;
         this.message = message;
@@ -74,8 +74,8 @@ public class NotificationEntity {
         return transactionId;
     }
 
-    public String getUserId() {
-        return userId;
+    public String getOwnerName() {
+        return ownerName;
     }
 
     public String getTransactionType() {

@@ -79,7 +79,7 @@ class NotificationServiceIntegrationTest {
                                          long amount, Integer from, Integer to, String status) {
         return TransactionEvent.newBuilder()
                 .setTransactionId(transactionId)
-                .setUserId("USER-0001")
+                .setOwnerName("John Doe")
                 .setTransactionType(type)
                 .setAmount(amount)
                 .setCreatedAt(Instant.now().toString())
@@ -118,7 +118,7 @@ class NotificationServiceIntegrationTest {
         assertThat(saved.getToAccountId()).isEqualTo(accountId);
         assertThat(saved.getMessage()).contains(String.valueOf(accountId)).contains("입금");
 
-        List<NotificationEntity> byUser = notificationController.getNotificationsByUser("USER-0001");
+        List<NotificationEntity> byUser = notificationController.getNotificationsByUser("John Doe");
         assertThat(byUser).anyMatch(n -> n.getTransactionId().equals(transactionId));
     }
 
