@@ -1,0 +1,1 @@
+curl.exe --verbose --request POST http://localhost:8080/transactions/withdraw --header "Content-Type: application/json" --data @example-withdraw.json

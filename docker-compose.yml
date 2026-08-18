@@ -4,10 +4,10 @@ services:
   # ---------------------------------------------------------------
   kafka:
     image: confluentinc/cp-kafka:7.6.1
-    container_name: fin-kafka
+    container_name: kafka
     hostname: kafka
     ports:
-      - "29092:29092"   # 호스트에서 접속용
+      - "29092:29092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -35,7 +35,7 @@ services:
   # ---------------------------------------------------------------
   schema-registry:
     image: confluentinc/cp-schema-registry:7.6.1
-    container_name: fin-schema-registry
+    container_name: schema-registry
     hostname: schema-registry
     depends_on:
       kafka:
@@ -59,7 +59,7 @@ services:
   # ---------------------------------------------------------------
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
-    container_name: fin-kafka-ui
+    container_name: kafka-ui
     depends_on:
       - kafka
       - schema-registry

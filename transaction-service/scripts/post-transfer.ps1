@@ -1,0 +1,1 @@
+curl.exe --verbose --request POST http://localhost:8080/transactions/transfer --header "Content-Type: application/json" --data @example-transfer.json
