@@ -71,8 +71,85 @@ services:
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
 
   # ---------------------------------------------------------------
-  # 4. 담당 서비스: notification-service
-  # (Eureka, Config Server 등 타 서비스는 전체 스택 또는 개별 구동 시 연동)
+  # 4. Config Server
+  # ---------------------------------------------------------------
+  config-server:
+    build: ./config-server
+    container_name: fin-config-server
+    hostname: config-server
+    ports:
+      - "8888:8888"
+
+  # ---------------------------------------------------------------
+  # 5. Eureka Server (Service Discovery)
+  # ---------------------------------------------------------------
+  eureka-server:
+    build: ./eureka-server
+    container_name: fin-eureka-server
+    hostname: eureka-server
+    depends_on:
+      - config-server
+    ports:
+      - "8761:8761"
+
+  # ---------------------------------------------------------------
+  # 6. API Gateway
+  # ---------------------------------------------------------------
+  gateway:
+    build: ./gateway
+    container_name: fin-gateway
+    hostname: gateway
+    depends_on:
+      - eureka-server
+      - config-server
+    ports:
+      - "8000:8080"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+
+  # ---------------------------------------------------------------
+  # 7. Account Service
+  # ---------------------------------------------------------------
+  account-service:
+    build: ./account-service
+    container_name: fin-account-service
+    hostname: account-service
+    depends_on:
+      - eureka-server
+      - config-server
+    ports:
+      - "8081:8081"
+    environment:
+      SERVER_PORT: 8081
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+
+  # ---------------------------------------------------------------
+  # 8. Transaction Service
+  # ---------------------------------------------------------------
+  transaction-service:
+    build: ./transaction-service
+    container_name: fin-transaction-service
+    hostname: transaction-service
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+    ports:
+      - "8082:8082"
+    environment:
+      SERVER_PORT: 8082
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+
+  # ---------------------------------------------------------------
+  # 9. Notification Service
   # ---------------------------------------------------------------
   notification-service:
     build: ./notification-service
@@ -83,6 +160,10 @@ services:
         condition: service_healthy
       schema-registry:
         condition: service_healthy
+      eureka-server:
+        condition: service_started
+      config-server:
+        condition: service_started
     ports:
       - "8085:8085"
     environment:
