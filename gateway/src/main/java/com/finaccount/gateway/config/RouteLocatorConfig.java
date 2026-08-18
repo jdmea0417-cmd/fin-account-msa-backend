@@ -47,6 +47,20 @@ public class RouteLocatorConfig {
                         .filters(filter -> filter)
                         .uri("lb://TRANSACTION-SERVICE")
                 )
+                .route("notification-service-h2console", route -> route
+                        .path("/notification-service/h2-console/**")
+                        .filters(filter -> filter
+                                .rewritePath(
+                                        "/notification-service/(?<segment>.*)",
+                                        "/${segment}"
+                                ))
+                        .uri("lb://NOTIFICATION-SERVICE")
+                )
+                .route("notification-service", route -> route
+                        .path("/notifications/**")
+                        .filters(filter -> filter)
+                        .uri("lb://NOTIFICATION-SERVICE")
+                )
                 .build();
     }
 }
