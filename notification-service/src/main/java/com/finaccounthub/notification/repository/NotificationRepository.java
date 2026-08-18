@@ -11,5 +11,5 @@ public interface NotificationRepository extends JpaRepository<NotificationEntity
 
     List<NotificationEntity> findAllByOrderByReceivedAtDesc();
 
-    boolean existsByTransactionId(String transactionId);
+    boolean existsByTransactionId(Integer transactionId);
 }

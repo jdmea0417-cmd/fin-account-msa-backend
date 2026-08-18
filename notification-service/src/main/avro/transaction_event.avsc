@@ -2,16 +2,15 @@
   "type": "record",
   "name": "TransactionEvent",
   "namespace": "com.finaccounthub.avro",
-  "doc": "계좌 입출금/이체 거래 발생 시 발행되는 이벤트. BACKWARD 호환성 유지를 위해 신규 필드는 반드시 default 값을 가져야 함. v2: 요구사항 정리 문서(fromAccount/toAccount FK 분리, status) 반영 — fromAccountId/toAccountId/status 추가.",
+  "doc": "계좌 입출금/이체 거래 발생 시 발행되는 이벤트. BACKWARD 호환성 유지를 위해 신규 필드는 반드시 default 값을 가져야 함. v2: 요구사항 정리 문서(fromAccount/toAccount FK 분리, status) 반영 — fromAccountId/toAccountId/status 추가. v3: Transaction Service 코드/DB 정합성 리뷰 반영 — transactionId/fromAccountId/toAccountId를 int(정수)로 변경, accountId 필드 제거, occurredAt을 createdAt으로 명명 통일. ⚠️ BREAKING CHANGE (BACKWARD 비호환): 필드 타입 변경(string→int) 및 필드 제거가 포함되어 있어 기존 컨슈머와 호환되지 않음. 스키마 레지스트리 호환성 모드 확인 및 프로듀서/컨슈머 동시 배포 필요. userId는 향후 userName으로 변경 예정이나 아직 미반영 상태로 이번 변경에서는 유지.",
   "fields": [
-    { "name": "transactionId", "type": "string", "doc": "거래 고유 ID (UUID)" },
-    { "name": "accountId", "type": "string", "doc": "거래 대상 계좌 ID (하위 호환용, DEPOSIT/WITHDRAW 시 대상 계좌, TRANSFER 시 fromAccountId와 동일)" },
-    { "name": "userId", "type": "string", "doc": "거래 요청 사용자 ID" },
+    { "name": "transactionId", "type": "int", "doc": "거래 고유 ID (DB PK, 정수형). v3: string(UUID 전제) → int로 변경, DB/요청·응답 데이터 자료형과 통일" },
+    { "name": "userId", "type": "string", "doc": "거래 요청 사용자 ID. userName으로 변경 예정이나 아직 미반영 (추후 별도 변경 예정)" },
     { "name": "transactionType", "type": "string", "doc": "DEPOSIT | WITHDRAW | TRANSFER (요구사항 정리 문서 기준)" },
     { "name": "amount", "type": "long", "doc": "거래 금액 (원 단위)" },
-    { "name": "occurredAt", "type": "string", "doc": "거래 발생 시각 (ISO-8601)" },
-    { "name": "fromAccountId", "type": ["null", "string"], "default": null, "doc": "출금/이체 출발 계좌 ID (DEPOSIT은 null). 요구사항 정리(2) API 응답의 fromAccountId 대응" },
-    { "name": "toAccountId", "type": ["null", "string"], "default": null, "doc": "입금/이체 도착 계좌 ID (WITHDRAW는 null). 요구사항 정리(2) API 응답의 toAccountId 대응" },
+    { "name": "createdAt", "type": "string", "doc": "거래 발생 시각 (ISO-8601). v3: occurredAt → createdAt으로 명명 변경 (Transaction Service의 createdAt 필드와 통일)" },
+    { "name": "fromAccountId", "type": ["null", "int"], "default": null, "doc": "출금/이체 출발 계좌 ID (DEPOSIT은 null). v3: string → int로 변경 (계좌 ID 자료형 통일)" },
+    { "name": "toAccountId", "type": ["null", "int"], "default": null, "doc": "입금/이체 도착 계좌 ID (WITHDRAW는 null). v3: string → int로 변경 (계좌 ID 자료형 통일)" },
     { "name": "status", "type": "string", "default": "SUCCESS", "doc": "PENDING | SUCCESS | FAILED (Saga 보상 트랜잭션 대응, 요구사항 정리 문서 Transaction DB status)" }
   ]
 }
