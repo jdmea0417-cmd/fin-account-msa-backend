@@ -1,0 +1,16 @@
+spring:
+  kafka:
+    bootstrap-servers: kafka:9092
+  properties:
+    schema.registry.url: http://schema-registry:8081
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-service:8761/eureka
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh,busrefresh

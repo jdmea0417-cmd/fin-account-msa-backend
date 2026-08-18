@@ -4,7 +4,7 @@ services:
   # ---------------------------------------------------------------
   kafka:
     image: confluentinc/cp-kafka:7.6.1
-    container_name: kafka
+    container_name: fin-kafka
     hostname: kafka
     ports:
       - "29092:29092"
@@ -35,13 +35,13 @@ services:
   # ---------------------------------------------------------------
   schema-registry:
     image: confluentinc/cp-schema-registry:7.6.1
-    container_name: schema-registry
+    container_name: fin-schema-registry
     hostname: schema-registry
     depends_on:
       kafka:
         condition: service_healthy
     ports:
-      - "8091:8081"   # 호스트 8091 -> 컨테이너 8081
+      - "8091:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
@@ -59,7 +59,7 @@ services:
   # ---------------------------------------------------------------
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
+    container_name: fin-kafka-ui
     depends_on:
       - kafka
       - schema-registry
@@ -71,26 +71,37 @@ services:
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
 
   # ---------------------------------------------------------------
-  # 4. Config Server
+  # 4. Config Server (Native 모드 - 로컬 파일 시스템)
   # ---------------------------------------------------------------
-  config-server:
+  config-service:
     build: ./config-server
     container_name: fin-config-server
     hostname: config-server
     ports:
       - "8888:8888"
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+    volumes:
+      - ./config-repo:/config-repo:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
 
   # ---------------------------------------------------------------
   # 5. Eureka Server (Service Discovery)
   # ---------------------------------------------------------------
-  eureka-server:
+  eureka-service:
     build: ./eureka-server
     container_name: fin-eureka-server
     hostname: eureka-server
     depends_on:
-      - config-server
+      - config-service
     ports:
       - "8761:8761"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-service:8888
 
   # ---------------------------------------------------------------
   # 6. API Gateway
@@ -100,12 +111,13 @@ services:
     container_name: fin-gateway
     hostname: gateway
     depends_on:
-      - eureka-server
-      - config-server
+      - eureka-service
+      - config-service
     ports:
       - "8000:8080"
     environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_CLOUD_CONFIG_URI: http://config-service:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
 
   # ---------------------------------------------------------------
   # 7. Account Service
@@ -115,14 +127,13 @@ services:
     container_name: fin-account-service
     hostname: account-service
     depends_on:
-      - eureka-server
-      - config-server
+      - eureka-service
+      - config-service
     ports:
       - "8081:8081"
     environment:
-      SERVER_PORT: 8081
-      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_CLOUD_CONFIG_URI: http://config-service:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
 
   # ---------------------------------------------------------------
   # 8. Transaction Service
@@ -136,17 +147,17 @@ services:
         condition: service_healthy
       schema-registry:
         condition: service_healthy
-      eureka-server:
+      eureka-service:
         condition: service_started
-      config-server:
-        condition: service_started
+      config-service:
+        condition: service_healthy
     ports:
       - "8082:8082"
     environment:
-      SERVER_PORT: 8082
+      SPRING_CLOUD_CONFIG_URI: http://config-service:8888
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
 
   # ---------------------------------------------------------------
   # 9. Notification Service
@@ -160,17 +171,17 @@ services:
         condition: service_healthy
       schema-registry:
         condition: service_healthy
-      eureka-server:
+      eureka-service:
         condition: service_started
-      config-server:
-        condition: service_started
+      config-service:
+        condition: service_healthy
     ports:
       - "8085:8085"
     environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-service:8888
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      CONFIG_SERVER_URI: http://config-server:8888
-      EUREKA_URI: http://eureka-server:8761/eureka/
+      EUREKA_URI: http://eureka-service:8761/eureka/
 
 volumes:
   kafka-data:

@@ -2,7 +2,7 @@ spring:
   cloud:
     config:
       uri: http://config-service:8888
-      name: account-service
+      name: eureka-server
       fail-fast: true
       retry:
         initial-interval: 2000
