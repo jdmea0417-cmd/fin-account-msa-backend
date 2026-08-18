@@ -74,7 +74,7 @@ docker compose up -d
 
 ```bash
 curl http://localhost:8085/notifications
-curl http://localhost:8085/notifications/{userId}
+curl http://localhost:8085/notifications/{ownerName}
 ```
 
 실제 거래 이벤트를 발행하려면 transaction-service(Producer, 별도 리포지토리)가 `fin.transaction.events`
