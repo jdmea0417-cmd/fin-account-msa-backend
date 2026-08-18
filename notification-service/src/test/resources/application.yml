@@ -1,6 +1,6 @@
 spring:
   config:
-    import: optional:configserver:disabled  # 테스트에서는 Config Server 미사용 (optional이라 실패해도 무시됨)
+    import: optional:configserver:disabled
   datasource:
     url: jdbc:h2:mem:notificationdb-test;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
