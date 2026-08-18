@@ -8,7 +8,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.3</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <groupId>com.finaccount</groupId>
@@ -21,7 +21,6 @@
         <java.version>21</java.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <confluent.version>7.6.1</confluent.version>
-        <avro.version>1.11.3</avro.version>
     </properties>
 
     <dependencies>
@@ -49,10 +48,11 @@
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
         </dependency>
+        <!-- Avro classes from finaccount-common -->
         <dependency>
-            <groupId>org.apache.avro</groupId>
-            <artifactId>avro</artifactId>
-            <version>${avro.version}</version>
+            <groupId>com.finaccount</groupId>
+            <artifactId>finaccount-common</artifactId>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>io.confluent</groupId>
@@ -118,24 +118,6 @@
                         </exclude>
                     </excludes>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.avro</groupId>
-                <artifactId>avro-maven-plugin</artifactId>
-                <version>${avro.version}</version>
-                <executions>
-                    <execution>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>schema</goal>
-                        </goals>
-                        <configuration>
-                            <sourceDirectory>${project.basedir}/src/main/avro</sourceDirectory>
-                            <outputDirectory>${project.basedir}/src/main/java</outputDirectory>
-                            <stringType>String</stringType>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
