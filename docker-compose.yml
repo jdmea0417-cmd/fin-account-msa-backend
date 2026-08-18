@@ -1,6 +1,6 @@
 services:
   # ---------------------------------------------------------------
-  # Kafka (KRaft 모드, Zookeeper 불필요, 단일 노드)
+  # 1. Kafka (KRaft 모드, Zookeeper 불필요, 단일 노드)
   # ---------------------------------------------------------------
   kafka:
     image: confluentinc/cp-kafka:7.6.1
@@ -31,7 +31,7 @@ services:
       retries: 10
 
   # ---------------------------------------------------------------
-  # Confluent Schema Registry
+  # 2. Confluent Schema Registry
   # ---------------------------------------------------------------
   schema-registry:
     image: confluentinc/cp-schema-registry:7.6.1
@@ -54,7 +54,9 @@ services:
       timeout: 10s
       retries: 10
 
-  # 선택: Kafka 토픽/메시지 확인용 웹 UI
+  # ---------------------------------------------------------------
+  # 3. Kafka UI
+  # ---------------------------------------------------------------
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: fin-kafka-ui
@@ -69,13 +71,13 @@ services:
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
 
   # ---------------------------------------------------------------
-  # 담당 서비스: notification-service
-  # (config-service, eureka-service는 별도 리포지토리/전체 스택에서 기동)
-  # spring.config.import=optional:configserver 이므로 config-service 미기동 시에도 정상 구동
+  # 4. 담당 서비스: notification-service
+  # (Eureka, Config Server 등 타 서비스는 전체 스택 또는 개별 구동 시 연동)
   # ---------------------------------------------------------------
   notification-service:
     build: ./notification-service
     container_name: fin-notification
+    hostname: notification-service
     depends_on:
       kafka:
         condition: service_healthy
@@ -86,8 +88,8 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      CONFIG_SERVER_URI: http://config-service:8888
-      EUREKA_URI: http://eureka-service:8761/eureka
+      CONFIG_SERVER_URI: http://config-server:8888
+      EUREKA_URI: http://eureka-server:8761/eureka/
 
 volumes:
   kafka-data:
