@@ -8,10 +8,21 @@ spring:
   cloud:
     config:
       server:
-        git:
-          uri: https://github.com/wnsdn-tech/fin-account-config-repo.git
+        native:
+          search-locations: file:///config-repo
+  profiles:
+    active: native
 
-    stream:
-      kafka:
-        binder:
-          brokers: ${KAFKA_BROKERS:localhost:9092}
+  stream:
+    kafka:
+      binder:
+        brokers: ${KAFKA_BROKERS:localhost:9092}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,busrefresh
+  endpoint:
+    health:
+      show-details: always

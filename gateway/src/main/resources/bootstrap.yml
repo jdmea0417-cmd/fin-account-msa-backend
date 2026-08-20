@@ -1,5 +1,10 @@
 spring:
   cloud:
     config:
-      uri: ${CONFIG_SERVER_URI:http://127.0.0.1:8888}
+      uri: ${CONFIG_SERVER_URI:http://config-service:8888}
       name: gateway
+      fail-fast: true
+      retry:
+        initial-interval: 2000
+        max-attempts: 6
+        multiplier: 1.5
