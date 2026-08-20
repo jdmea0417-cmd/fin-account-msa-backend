@@ -1,14 +1,15 @@
 package com.finaccount.accountservice.controller;
 
-import com.finaccount.accountservice.vo.AccountRequest;
 import com.finaccount.accountservice.dto.AccountDto;
 import com.finaccount.accountservice.service.AccountService;
+import com.finaccount.accountservice.vo.AccountRequest;
 import com.finaccount.accountservice.vo.AccountResponse;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.NoSuchElementException;
 
@@ -25,10 +26,8 @@ public class AccountController {
         ModelMapper mapper = new ModelMapper();
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
-        AccountDto dto =  mapper.map(request, AccountDto.class);
-
+        AccountDto dto = mapper.map(request, AccountDto.class);
         AccountDto created = service.createAccount(dto);
-
         AccountResponse response = mapper.map(created, AccountResponse.class);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -41,13 +40,11 @@ public class AccountController {
             mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
             AccountDto dto = service.getAccountByAccountId(accountId);
-
             AccountResponse response = mapper.map(dto, AccountResponse.class);
 
             return ResponseEntity.status(HttpStatus.OK).body(response);
-
         } catch (NoSuchElementException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
@@ -61,15 +58,14 @@ public class AccountController {
             mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
             AccountDto dto = mapper.map(request, AccountDto.class);
-
             AccountDto updated = service.updateAccount(accountId, dto);
-
             AccountResponse response = mapper.map(updated, AccountResponse.class);
 
             return ResponseEntity.status(HttpStatus.OK).body(response);
-
         } catch (NoSuchElementException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 }

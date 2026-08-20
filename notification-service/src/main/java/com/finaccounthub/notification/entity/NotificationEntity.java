@@ -6,11 +6,8 @@ import java.time.LocalDateTime;
 
 /**
  * 알림 로그 엔티티.
- * Kafka로부터 수신한 TransactionEvent를 사람이 읽을 수 있는 알림 메시지로
- * 변환하여 저장한다 (실제 이메일/SMS 발송 대신 로그 저장으로 대체).
- *
- * v3: Avro 스키마 정합성 반영 — transactionId/fromAccountId/toAccountId를 Integer로 변경,
- * accountId 필드 제거.
+ * Kafka로부터 수신한 TransactionEvent를 가공하여 저장하며,
+ * FDS(이상거래 탐지) 결과 필드를 포함한다.
  */
 @Entity
 @Table(name = "notification_log")
@@ -38,6 +35,9 @@ public class NotificationEntity {
     @Column(nullable = false)
     private String status;
 
+    @Column(nullable = false)
+    private Boolean isSuspicious = false;
+
     @Column
     private Integer fromAccountId;
 
@@ -53,7 +53,7 @@ public class NotificationEntity {
 
     public NotificationEntity(Integer transactionId, String ownerName,
                                String transactionType, Long amount, String message,
-                               String status, Integer fromAccountId, Integer toAccountId,
+                               String status, Boolean isSuspicious, Integer fromAccountId, Integer toAccountId,
                                LocalDateTime receivedAt) {
         this.transactionId = transactionId;
         this.ownerName = ownerName;
@@ -61,6 +61,7 @@ public class NotificationEntity {
         this.amount = amount;
         this.message = message;
         this.status = status;
+        this.isSuspicious = isSuspicious != null ? isSuspicious : false;
         this.fromAccountId = fromAccountId;
         this.toAccountId = toAccountId;
         this.receivedAt = receivedAt;
@@ -92,6 +93,10 @@ public class NotificationEntity {
 
     public String getStatus() {
         return status;
+    }
+
+    public Boolean getIsSuspicious() {
+        return isSuspicious;
     }
 
     public Integer getFromAccountId() {

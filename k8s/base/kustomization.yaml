@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fin-account-hub
+
+resources:
+  - 00-namespace.yaml
+  - 01-configmap.yaml
+  - 02-secrets.yaml
+  - 03-mariadb-account-statefulset.yaml
+  - 04-mariadb-account-service.yaml
+  - 05-mariadb-transaction-statefulset.yaml
+  - 06-mariadb-transaction-service.yaml
+  - 07-mariadb-notification-statefulset.yaml
+  - 08-mariadb-notification-service.yaml
+  - 09-kafka-deployment.yaml
+  - 10-kafka-pvc.yaml
+  - 11-kafka-service.yaml
+  - 12-schema-registry-deployment.yaml
+  - 13-schema-registry-service.yaml
+  - 14-kafka-ui-deployment.yaml
+  - 15-kafka-ui-service.yaml
+  - 16-config-service-deployment.yaml
+  - 17-config-service-service.yaml
+  - 18-eureka-service-deployment.yaml
+  - 19-eureka-service-service.yaml
+  - 20-gateway-deployment.yaml
+  - 21-gateway-service.yaml
+  - 22-account-service-deployment.yaml
+  - 23-account-service-service.yaml
+  - 24-transaction-service-deployment.yaml
+  - 25-transaction-service-service.yaml
+  - 26-notification-service-deployment.yaml
+  - 27-notification-service-service.yaml
+  - 28-ingress.yaml
+
+commonLabels:
+  project: fin-account-hub
+  environment: dev

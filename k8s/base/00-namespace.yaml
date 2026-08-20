@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fin-account-hub
+  labels:
+    name: fin-account-hub
+    environment: dev

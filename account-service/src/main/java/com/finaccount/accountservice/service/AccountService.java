@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -26,37 +27,34 @@ public class AccountService implements UserDetailsService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     public AccountDto createAccount(AccountDto dto) {
         ModelMapper mapper = new ModelMapper();
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
         AccountEntity entity = mapper.map(dto, AccountEntity.class);
         entity.setAccountNumber(new AccountNumberGenerator().generate());
-        entity.setBalance(0L);
+        entity.setBalance(dto.getBalance() != null ? dto.getBalance() : 0L);
         entity.setStatus(AccountStatus.ACTIVE);
         entity.setPassword(passwordEncoder.encode(dto.getPassword()));
 
         entity = repository.save(entity);
 
-        AccountDto created = mapper.map(entity, AccountDto.class);
-
-        return created;
+        return mapper.map(entity, AccountDto.class);
     }
 
     public AccountDto getAccountByAccountId(Integer accountId) throws NoSuchElementException {
-        AccountEntity entity = repository.findById(accountId).orElseThrow();
+        AccountEntity entity = repository.findById(accountId)
+                .orElseThrow(() -> new NoSuchElementException("Account not found with ID: " + accountId));
 
-        AccountDto dto = new ModelMapper().map(entity, AccountDto.class);
-
-        return dto;
+        return new ModelMapper().map(entity, AccountDto.class);
     }
 
     public AccountDto getAccountByAccountNumber(String accountNumber) throws NoSuchElementException {
-        AccountEntity entity = repository.findByAccountNumber(accountNumber).orElseThrow();
+        AccountEntity entity = repository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new NoSuchElementException("Account not found with number: " + accountNumber));
 
-        AccountDto dto = new ModelMapper().map(entity, AccountDto.class);
-
-        return dto;
+        return new ModelMapper().map(entity, AccountDto.class);
     }
 
     @Override
@@ -67,7 +65,7 @@ public class AccountService implements UserDetailsService {
             return new User(
                     dto.getAccountNumber(),
                     dto.getPassword(),
-                    true,
+                    dto.getStatus() == AccountStatus.ACTIVE,
                     true,
                     true,
                     true,
@@ -79,10 +77,18 @@ public class AccountService implements UserDetailsService {
         }
     }
 
+    @Transactional
     public AccountDto updateAccount(Integer accountId, AccountDto dto) throws NoSuchElementException {
-        AccountEntity entity = repository.findById(accountId).orElseThrow();
+        AccountEntity entity = repository.findById(accountId)
+                .orElseThrow(() -> new NoSuchElementException("Account not found with ID: " + accountId));
 
         if (isBalanceToBeUpdated(dto)) {
+            if (entity.getStatus() != AccountStatus.ACTIVE) {
+                throw new IllegalStateException("Cannot update balance on non-active account. Current status: " + entity.getStatus());
+            }
+            if (dto.getBalance() < 0) {
+                throw new IllegalArgumentException("Account balance cannot be negative: " + dto.getBalance());
+            }
             entity.setBalance(dto.getBalance());
         }
 
@@ -92,9 +98,7 @@ public class AccountService implements UserDetailsService {
 
         AccountEntity saved = repository.save(entity);
 
-        AccountDto account = new ModelMapper().map(saved, AccountDto.class);
-
-        return account;
+        return new ModelMapper().map(saved, AccountDto.class);
     }
 
     private boolean isBalanceToBeUpdated(AccountDto dto) {
