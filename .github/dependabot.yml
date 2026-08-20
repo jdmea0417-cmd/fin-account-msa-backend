@@ -1,0 +1,78 @@
+version: 2
+updates:
+  # Maven dependencies
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "maven"
+    commit-message:
+      prefix: "[maven]"
+    groups:
+      spring-boot:
+        patterns:
+          - "org.springframework.boot:*"
+        update-types:
+          - "minor"
+          - "patch"
+      spring-cloud:
+        patterns:
+          - "org.springframework.cloud:*"
+        update-types:
+          - "minor"
+          - "patch"
+      confluent:
+        patterns:
+          - "io.confluent:*"
+        update-types:
+          - "minor"
+          - "patch"
+      database:
+        patterns:
+          - "org.mariadb.jdbc:*"
+          - "com.h2database:*"
+        update-types:
+          - "minor"
+          - "patch"
+      testing:
+        patterns:
+          - "org.junit:*"
+          - "org.mockito:*"
+          - "org.assertj:*"
+          - "org.awaitility:*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "[actions]"
+
+  # Docker base images
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "[docker]"

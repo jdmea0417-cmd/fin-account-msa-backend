@@ -39,4 +39,10 @@ public class NotificationController {
     public List<NotificationEntity> getNotificationsByUser(@PathVariable String ownerName) {
         return notificationRepository.findByOwnerNameOrderByReceivedAtDesc(ownerName);
     }
+
+    /** FDS 이상거래 의심 알림 목록 조회 (최신순) */
+    @GetMapping("/notifications/suspicious")
+    public List<NotificationEntity> getSuspiciousNotifications() {
+        return notificationRepository.findByIsSuspiciousTrueOrderByReceivedAtDesc();
+    }
 }

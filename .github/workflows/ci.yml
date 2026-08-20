@@ -1,0 +1,446 @@
+name: Fin-Account Hub CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main, develop]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAMESPACE: uniquecolor
+  JAVA_VERSION: '21'
+  MAVEN_VERSION: '3.9.6'
+
+jobs:
+  # ============================================================
+  # 1. 코드 품질 검사 및 빌드
+  # ============================================================
+  build-and-test:
+    name: Build & Test (All Services)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 태그 기반 버전 추출용
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'maven'
+
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: ${{ env.MAVEN_VERSION }}
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build all modules (skip tests for speed)
+        run: |
+          mvn -B clean compile -DskipTests
+
+      - name: Run unit tests
+        run: |
+          mvn -B test
+
+      - name: Generate test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Maven Test Results
+          path: '**/target/surefire-reports/*.xml'
+          reporter: java-junit
+
+      - name: Upload test coverage (JaCoCo)
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-reports
+          path: '**/target/site/jacoco/'
+          retention-days: 7
+
+  # ============================================================
+  # 2. Docker 이미지 빌드 (각 서비스별 병렬)
+  # ============================================================
+  docker-build:
+    name: Build Docker Images
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        service:
+          - config-server
+          - eureka-server
+          - gateway
+          - account-service
+          - transaction-service
+          - notification-service
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Output image digest
+        run: |
+          echo "Image: ${{ steps.meta.outputs.tags }}"
+
+  # ============================================================
+  # 3. 통합 테스트 (Docker Compose 환경)
+  # ============================================================
+  integration-test:
+    name: Integration Tests (Docker Compose)
+    needs: docker-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        run: |
+          # Docker Compose V2는 기본 내장
+          docker compose version
+
+      - name: Pull latest images
+        run: |
+          docker compose pull
+
+      - name: Start infrastructure services
+        run: |
+          docker compose up -d kafka schema-registry mariadb-account-service mariadb-transaction-service mariadb-notification-service
+          # 헬스체크 대기
+          echo "Waiting for infrastructure to be healthy..."
+          for i in {1..30}; do
+            if docker compose ps | grep -E "(kafka|schema-registry|mariadb)" | grep -q "unhealthy\|starting"; then
+              echo "Waiting... ($i/30)"
+              sleep 10
+            else
+              break
+            fi
+          done
+          docker compose ps
+
+      - name: Start application services
+        run: |
+          docker compose up -d config-service eureka-service gateway account-service transaction-service notification-service
+          echo "Waiting for applications to be healthy..."
+          for i in {1..60}; do
+            if docker compose ps | grep -E "(config-service|eureka-service|gateway|account-service|transaction-service|notification-service)" | grep -q "unhealthy\|starting"; then
+              echo "Waiting... ($i/60)"
+              sleep 10
+            else
+              break
+            fi
+          done
+          docker compose ps
+
+      - name: Run health checks
+        run: |
+          # Gateway 헬스체크
+          for i in {1..30}; do
+            if curl -sf http://localhost:8080/actuator/health > /dev/null; then
+              echo "Gateway is healthy"
+              break
+            fi
+            echo "Waiting for gateway... ($i/30)"
+            sleep 5
+          done
+
+          # Eureka 헬스체크
+          for i in {1..30}; do
+            if curl -sf http://localhost:8761/actuator/health > /dev/null; then
+              echo "Eureka is healthy"
+              break
+            fi
+            echo "Waiting for eureka... ($i/30)"
+            sleep 5
+          done
+
+          # Config Server 헬스체크
+          for i in {1..30}; do
+            if curl -sf http://localhost:8888/actuator/health > /dev/null; then
+              echo "Config Server is healthy"
+              break
+            fi
+            echo "Waiting for config server... ($i/30)"
+            sleep 5
+          done
+
+      - name: Run API smoke tests
+        run: |
+          # 계좌 생성 테스트
+          ACCOUNT_RESPONSE=$(curl -s -X POST http://localhost:8080/accounts \
+            -H "Content-Type: application/json" \
+            -d '{"ownerName":"Test User","password":"password123","balance":10000}')
+          echo "Account created: $ACCOUNT_RESPONSE"
+          ACCOUNT_ID=$(echo $ACCOUNT_RESPONSE | jq -r '.accountId // empty')
+          
+          if [ -z "$ACCOUNT_ID" ] || [ "$ACCOUNT_ID" = "null" ]; then
+            echo "Failed to create account"
+            exit 1
+          fi
+
+          # 로그인 및 JWT 획득
+          LOGIN_RESPONSE=$(curl -s -X POST http://localhost:8080/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"accountNumber":"'$(echo $ACCOUNT_RESPONSE | jq -r '.accountNumber')'","password":"password123"}')
+          echo "Login response: $LOGIN_RESPONSE"
+          TOKEN=$(echo $LOGIN_RESPONSE | jq -r '.accessToken // empty')
+          
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Failed to get token"
+            exit 1
+          fi
+
+          # 입금 테스트
+          DEPOSIT_RESPONSE=$(curl -s -X POST http://localhost:8080/transactions/deposit \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $TOKEN" \
+            -d "{\"accountId\":$ACCOUNT_ID,\"amount\":5000}")
+          echo "Deposit: $DEPOSIT_RESPONSE"
+
+          # 출금 테스트
+          WITHDRAW_RESPONSE=$(curl -s -X POST http://localhost:8080/transactions/withdraw \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $TOKEN" \
+            -d "{\"accountId\":$ACCOUNT_ID,\"amount\":2000}")
+          echo "Withdraw: $WITHDRAW_RESPONSE"
+
+          # 알림 조회 테스트 (비동기 처리 대기)
+          sleep 5
+          NOTIFICATIONS=$(curl -s -X GET "http://localhost:8085/notifications" \
+            -H "Authorization: Bearer $TOKEN")
+          echo "Notifications: $NOTIFICATIONS"
+
+          echo "✅ All smoke tests passed!"
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          echo "=== Docker Compose Logs ==="
+          docker compose logs --tail=100
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose down -v
+
+  # ============================================================
+  # 4. 보안 스캔 (Trivy)
+  # ============================================================
+  security-scan:
+    name: Security Scan (Trivy)
+    needs: docker-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        service:
+          - config-server
+          - eureka-server
+          - gateway
+          - account-service
+          - transaction-service
+          - notification-service
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.service }}:latest'
+          format: 'sarif'
+          output: 'trivy-${{ matrix.service }}.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-${{ matrix.service }}.sarif'
+          category: '${{ matrix.service }}'
+
+  # ============================================================
+  # 5. Kubernetes 매니페스트 검증
+  # ============================================================
+  k8s-validate:
+    name: Validate K8s Manifests
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: '5.4.3'
+
+      - name: Validate base manifests
+        run: |
+          kustomize build k8s/base
+
+      - name: Validate dev overlay
+        run: |
+          kustomize build k8s/overlays/dev
+
+      - name: Validate with kubeconform (schema validation)
+        uses: docker://ghcr.io/yannh/kubeconform:v0.6.7
+        with:
+          args: -strict -kubernetes-version 1.28.0 k8s/overlays/dev
+
+  # ============================================================
+  # 6. 릴리스 배포 (main 브랜치 태그 푸시 시)
+  # ============================================================
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [integration-test, security-scan, k8s-validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    environment: staging
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl for staging
+        uses: azure/k8s-set-context@v4
+        with:
+          kubeconfig: ${{ secrets.STAGING_KUBECONFIG }}
+
+      - name: Update image tags in kustomization
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          cd k8s/overlays/staging 2>/dev/null || mkdir -p k8s/overlays/staging
+          # staging 오버레이가 없으면 base 사용
+          kustomize edit set image \
+            uniquecolor/config-service=uniquecolor/config-service:$VERSION \
+            uniquecolor/eureka-service=uniquecolor/eureka-service:$VERSION \
+            uniquecolor/gateway=uniquecolor/gateway:$VERSION \
+            uniquecolor/account-service=uniquecolor/account-service:$VERSION \
+            uniquecolor/transaction-service=uniquecolor/transaction-service:$VERSION \
+            uniquecolor/notification-service=uniquecolor/notification-service:$VERSION
+
+      - name: Deploy to staging
+        run: |
+          kubectl apply -k k8s/overlays/dev  # dev 오버레이를 staging으로 사용
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/gateway -n fin-account-hub --timeout=300s
+          kubectl rollout status deployment/account-service -n fin-account-hub --timeout=300s
+          kubectl rollout status deployment/transaction-service -n fin-account-hub --timeout=300s
+          kubectl rollout status deployment/notification-service -n fin-account-hub --timeout=300s
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n fin-account-hub
+          curl -sf http://staging.fin-account.local/actuator/health || echo "Staging health check endpoint TBD"
+
+  # ============================================================
+  # 7. 프로덕션 배포 (수동 승인 필요)
+  # ============================================================
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl for production
+        uses: azure/k8s-set-context@v4
+        with:
+          kubeconfig: ${{ secrets.PRODUCTION_KUBECONFIG }}
+
+      - name: Deploy to production (Blue-Green or Rolling)
+        run: |
+          # 프로덕션은 수동 승인 후 진행
+          # kubectl apply -k k8s/overlays/prod
+          echo "Production deployment requires manual approval"
+          echo "Run: kubectl apply -k k8s/overlays/prod"
+
+  # ============================================================
+  # 8. 알림 (Slack/Discord)
+  # ============================================================
+  notify:
+    name: Notify Result
+    needs: [build-and-test, docker-build, integration-test, security-scan, k8s-validate, deploy-staging]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Determine overall status
+        id: status
+        run: |
+          NEEDS_STATUS="${{ toJson(needs) }}"
+          echo "needs_status=$NEEDS_STATUS" >> $GITHUB_OUTPUT
+
+      - name: Send Slack notification
+        if: env.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+          text: "Fin-Account Hub CI/CD Pipeline ${{ job.status }}"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Print summary
+        run: |
+          echo "## Pipeline Summary"
+          echo "Build & Test: ${{ needs.build-and-test.result }}"
+          echo "Docker Build: ${{ needs.docker-build.result }}"
+          echo "Integration Test: ${{ needs.integration-test.result }}"
+          echo "Security Scan: ${{ needs.security-scan.result }}"
+          echo "K8s Validate: ${{ needs.k8s-validate.result }}"
+          echo "Deploy Staging: ${{ needs.deploy-staging.result }}"

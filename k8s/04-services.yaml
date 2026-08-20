@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-service
+  namespace: fin-account-hub
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: account-service
+  template:
+    metadata:
+      labels:
+        app: account-service
+    spec:
+      containers:
+        - name: account-service
+          image: uniquecolor/account-service:1.0.0
+          envFrom:
+            - configMapRef:
+                name: fin-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: account-service
+  namespace: fin-account-hub
+spec:
+  selector:
+    app: account-service
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transaction-service
+  namespace: fin-account-hub
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: transaction-service
+  template:
+    metadata:
+      labels:
+        app: transaction-service
+    spec:
+      containers:
+        - name: transaction-service
+          image: uniquecolor/transaction-service:1.0.0
+          envFrom:
+            - configMapRef:
+                name: fin-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: transaction-service
+  namespace: fin-account-hub
+spec:
+  selector:
+    app: transaction-service
+  ports:
+    - name: http
+      port: 8082
+      targetPort: 8082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: fin-account-hub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: uniquecolor/notification-service:1.0.0
+          ports:
+            - containerPort: 8085
+          envFrom:
+            - configMapRef:
+                name: fin-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: fin-account-hub
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - name: http
+      port: 8085
+      targetPort: 8085

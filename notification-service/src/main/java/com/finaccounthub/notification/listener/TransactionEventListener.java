@@ -13,17 +13,16 @@ import java.time.LocalDateTime;
 
 /**
  * fin.transaction.events 토픽을 구독하여 거래 이벤트를 알림 로그로 변환/저장한다.
- *
- * Avro + Schema Registry 덕분에 컨슈머는 스키마 정의(TransactionEvent) 그대로
- * 타입 안전하게 역직렬화된 객체를 수신한다. (KafkaAvroDeserializer가 자동 처리)
- *
- * v3: Avro 스키마 정합성 반영 — transactionId/fromAccountId/toAccountId는 int,
- * accountId 필드는 제거됨 (fromAccountId/toAccountId로 대체).
+ * FDS(이상거래 탐지 시스템) 룰을 적용하여 고액 거래 및 단시간 다건 거래를 감지한다.
  */
 @Component
 public class TransactionEventListener {
 
     private static final Logger log = LoggerFactory.getLogger(TransactionEventListener.class);
+
+    // FDS 임계치 설정
+    private static final long HIGH_AMOUNT_THRESHOLD = 10_000_000L; // 1,000만 원 이상
+    private static final int RAPID_TX_THRESHOLD = 3; // 1분 내 3건 이상
 
     private final NotificationRepository notificationRepository;
 
@@ -37,23 +36,50 @@ public class TransactionEventListener {
 
         Integer transactionId = event.getTransactionId();
 
-        // 멱등성 보장: Kafka 재전송(at-least-once) / Consumer 재시작 시 동일 거래가 중복 저장되지 않도록
-        // 저장 전에 존재 여부를 확인한다. transactionId에는 DB unique 제약도 걸려 있어 이중 방어된다.
+        // 멱등성 보장
         if (notificationRepository.existsByTransactionId(transactionId)) {
             log.warn("Duplicate TransactionEvent detected, skip saving: transactionId={}", transactionId);
             return;
         }
 
         String status = event.getStatus() != null ? event.getStatus().toString() : "SUCCESS";
-        String message = buildMessage(event, status);
+        String ownerName = event.getOwnerName() != null ? event.getOwnerName().toString() : "Unknown";
+        long amount = event.getAmount();
+
+        // FDS 이상거래 탐지 로직
+        boolean isSuspicious = false;
+        StringBuilder fdsReason = new StringBuilder();
+
+        if (amount >= HIGH_AMOUNT_THRESHOLD) {
+            isSuspicious = true;
+            fdsReason.append(String.format("[고액거래: %,d원] ", amount));
+        }
+
+        LocalDateTime oneMinuteAgo = LocalDateTime.now().minusMinutes(1);
+        long recentTxCount = notificationRepository.countRecentTransactionsByOwner(ownerName, oneMinuteAgo);
+        if (recentTxCount >= RAPID_TX_THRESHOLD) {
+            isSuspicious = true;
+            fdsReason.append(String.format("[단시간 다건거래: 최근 1분간 %d건] ", recentTxCount));
+        }
+
+        String baseMessage = buildMessage(event, status);
+        String finalMessage;
+        if (isSuspicious) {
+            finalMessage = String.format("[FDS 이상거래 의심 경고 %s] %s", fdsReason.toString().trim(), baseMessage);
+            log.warn("🚨 [FDS ALERT] 이상거래 감지: transactionId={}, owner={}, amount={}, reason={}",
+                    transactionId, ownerName, amount, fdsReason);
+        } else {
+            finalMessage = baseMessage;
+        }
 
         NotificationEntity entity = new NotificationEntity(
                 transactionId,
-                event.getOwnerName().toString(),
+                ownerName,
                 event.getTransactionType().toString(),
-                event.getAmount(),
-                message,
+                amount,
+                finalMessage,
                 status,
+                isSuspicious,
                 event.getFromAccountId(),
                 event.getToAccountId(),
                 LocalDateTime.now()
@@ -62,16 +88,10 @@ public class TransactionEventListener {
         try {
             notificationRepository.save(entity);
         } catch (DataIntegrityViolationException e) {
-            // 존재 여부 확인과 저장 사이의 race condition(동시 컨슈머 재처리 등)에 대한 마지막 방어선.
             log.warn("Duplicate TransactionEvent (unique constraint), skip saving: transactionId={}", transactionId);
         }
     }
 
-    /**
-     * 요구사항 정리 문서 기준 거래 타입: DEPOSIT | WITHDRAW | TRANSFER, 상태: PENDING | SUCCESS | FAILED.
-     * TRANSFER는 fromAccountId/toAccountId(v2 스키마)를 이용해 출발/도착 계좌를 명시한다.
-     * v3: accountId 필드가 제거되어 폴백 없이 fromAccountId/toAccountId만 사용한다.
-     */
     private String buildMessage(TransactionEvent event, String status) {
         Integer from = event.getFromAccountId();
         Integer to = event.getToAccountId();

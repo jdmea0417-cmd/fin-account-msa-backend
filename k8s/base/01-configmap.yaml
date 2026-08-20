@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fin-account-config
+  namespace: fin-account-hub
+data:
+  EUREKA_URI: "http://eureka-service:8761/eureka/"
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+  CONFIG_SERVER_URI: "http://config-service:8888"
+  CORS_ALLOWED_ORIGIN: "http://localhost:5173"
+  TOKEN_SECRET: "my-very-long-secret-key-1234567890123456"
+  SPRING_PROFILES_ACTIVE: "dev"

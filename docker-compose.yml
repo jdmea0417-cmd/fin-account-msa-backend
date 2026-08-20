@@ -1,13 +1,89 @@
 services:
-  # ---------------------------------------------------------------
-  # 1. Kafka (KRaft 모드, Zookeeper 불필요, 단일 노드)
-  # ---------------------------------------------------------------
+  frontend:
+    image: uniquecolor/miniproject-frontend:1.0.1
+    container_name: frontend
+    ports:
+      - 80:80
+    environment:
+      - VITE_API_BASE_URL=http://192.168.0.1:8080
+
+  config-service:
+    image: uniquecolor/config-service:1.0.0
+    build: ./config-server
+    container_name: config-service
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+
+  account-service:
+    image: uniquecolor/account-service:1.0.0
+    build: ./account-service
+    container_name: account-service
+    environment:
+      - eureka.client.service-url.defaultZone=http://eureka-service:8761/eureka/
+      - spring.datasource.url=jdbc:mariadb://mariadb-account-service:3306/appdb
+      - KAFKA_BROKERS=kafka:9092
+
+  transaction-service:
+    image: uniquecolor/transaction-service:1.0.0
+    build: ./transaction-service
+    container_name: transaction-service
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    environment:
+      - eureka.client.service-url.defaultZone=http://eureka-service:8761/eureka/
+      - spring.kafka.bootstrap-servers=kafka:9092
+      - spring.kafka.properties.schema.registry.url=http://schema-registry:8081
+      - spring.datasource.url=jdbc:mariadb://mariadb-transaction-service:3306/appdb
+      - KAFKA_BROKERS=kafka:9092
+
+  notification-service:
+    image: uniquecolor/notification-service:1.0.0
+    build: ./notification-service
+    container_name: notification-service
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "8085:8085"
+    environment:
+      spring.datasource.url: jdbc:mariadb://mariadb-notification-service:3306/appdb
+      spring.h2.console.settings.web-allow-others: "true" # 임시조치
+      eureka.client.service-url.defaultZone: http://eureka-service:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KAFKA_BROKERS: kafka:9092
+
+  gateway-service:
+    image: uniquecolor/gateway-service:1.0.0
+    build: ./gateway
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      - eureka.client.service-url.defaultZone=http://eureka-service:8761/eureka/
+      - CORS_ALLOWED_ORIGIN=http://192.168.0.1
+      - KAFKA_BROKERS=kafka:9092
+
+  eureka-service:
+    image: uniquecolor/eureka-service:1.0.0
+    build: ./eureka-server
+    container_name: eureka-service
+    ports:
+      - "8761:8761"
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+
   kafka:
     image: confluentinc/cp-kafka:7.6.1
-    container_name: fin-kafka
+    container_name: kafka
     hostname: kafka
     ports:
-      - "29092:29092"   # 호스트에서 접속용
+      - "29092:29092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -30,18 +106,15 @@ services:
       timeout: 10s
       retries: 10
 
-  # ---------------------------------------------------------------
-  # 2. Confluent Schema Registry
-  # ---------------------------------------------------------------
   schema-registry:
     image: confluentinc/cp-schema-registry:7.6.1
-    container_name: fin-schema-registry
+    container_name: schema-registry
     hostname: schema-registry
     depends_on:
       kafka:
         condition: service_healthy
     ports:
-      - "8091:8081"   # 호스트 8091 -> 컨테이너 8081
+      - "8091:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
@@ -54,12 +127,9 @@ services:
       timeout: 10s
       retries: 10
 
-  # ---------------------------------------------------------------
-  # 3. Kafka UI
-  # ---------------------------------------------------------------
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
-    container_name: fin-kafka-ui
+    container_name: kafka-ui
     depends_on:
       - kafka
       - schema-registry
@@ -70,107 +140,35 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
 
-  # ---------------------------------------------------------------
-  # 4. Config Server
-  # ---------------------------------------------------------------
-  config-server:
-    build: ./config-server
-    container_name: fin-config-server
-    hostname: config-server
-    ports:
-      - "8888:8888"
-
-  # ---------------------------------------------------------------
-  # 5. Eureka Server (Service Discovery)
-  # ---------------------------------------------------------------
-  eureka-server:
-    build: ./eureka-server
-    container_name: fin-eureka-server
-    hostname: eureka-server
-    depends_on:
-      - config-server
-    ports:
-      - "8761:8761"
-
-  # ---------------------------------------------------------------
-  # 6. API Gateway
-  # ---------------------------------------------------------------
-  gateway:
-    build: ./gateway
-    container_name: fin-gateway
-    hostname: gateway
-    depends_on:
-      - eureka-server
-      - config-server
-    ports:
-      - "8000:8080"
+  mariadb-account-service:
+    image: mariadb:latest
+    container_name: mariadb-account-service
+    restart: unless-stopped
     environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: appdb
+      MARIADB_USER: appuser
+      MARIADB_PASSWORD: apppassword
 
-  # ---------------------------------------------------------------
-  # 7. Account Service
-  # ---------------------------------------------------------------
-  account-service:
-    build: ./account-service
-    container_name: fin-account-service
-    hostname: account-service
-    depends_on:
-      - eureka-server
-      - config-server
-    ports:
-      - "8081:8081"
+  mariadb-transaction-service:
+    image: mariadb:latest
+    container_name: mariadb-transaction-service
+    restart: unless-stopped
     environment:
-      SERVER_PORT: 8081
-      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: appdb
+      MARIADB_USER: appuser
+      MARIADB_PASSWORD: apppassword
 
-  # ---------------------------------------------------------------
-  # 8. Transaction Service
-  # ---------------------------------------------------------------
-  transaction-service:
-    build: ./transaction-service
-    container_name: fin-transaction-service
-    hostname: transaction-service
-    depends_on:
-      kafka:
-        condition: service_healthy
-      schema-registry:
-        condition: service_healthy
-      eureka-server:
-        condition: service_started
-      config-server:
-        condition: service_started
-    ports:
-      - "8082:8082"
+  mariadb-notification-service:
+    image: mariadb:latest
+    container_name: mariadb-notification-service
+    restart: unless-stopped
     environment:
-      SERVER_PORT: 8082
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-
-  # ---------------------------------------------------------------
-  # 9. Notification Service
-  # ---------------------------------------------------------------
-  notification-service:
-    build: ./notification-service
-    container_name: fin-notification
-    hostname: notification-service
-    depends_on:
-      kafka:
-        condition: service_healthy
-      schema-registry:
-        condition: service_healthy
-      eureka-server:
-        condition: service_started
-      config-server:
-        condition: service_started
-    ports:
-      - "8085:8085"
-    environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      CONFIG_SERVER_URI: http://config-server:8888
-      EUREKA_URI: http://eureka-server:8761/eureka/
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: appdb
+      MARIADB_USER: appuser
+      MARIADB_PASSWORD: apppassword
 
 volumes:
   kafka-data:
